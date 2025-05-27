@@ -74,7 +74,8 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
         # Clean up the crawler
         await crawler.__aexit__(None, None, None)
 
-# Initialize FastMCP server
+# Initialize MCP Server
+# Give a more descriptive name to the MCP server instance
 mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI with web crawling and RAG capabilities.")
 
 # Add health endpoint
@@ -587,23 +588,15 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 
 # MCP Server main execution
 def main():
-    """Runs the MCP server using uvicorn, trying mcp.app."""
-    try:
-        print(f"Attempting to print fastmcp version: {fastmcp.__version__}")
-    except AttributeError:
-        print("Could not retrieve fastmcp.__version__.")
+    """Runs the MCP server using uvicorn and mcp.http_app()."""
+    print("Attempting to start MCP server with uvicorn and mcp.http_app()...")
     
-    print("Attempting to start MCP server with uvicorn, trying mcp.app ...")
-    port = int(os.getenv("PORT", "11235"))
-    try:
-        # Attempt to run using mcp.app, a common way to get the ASGI app
-        uvicorn.run(mcp.app, host="0.0.0.0", port=port)
-    except AttributeError:
-        print("mcp.app not found. Falling back to passing mcp instance directly (likely to fail).")
-        # Fallback, which we know might cause 'FastMCP object is not callable'
-        uvicorn.run(mcp, host="0.0.0.0", port=port) 
-    except Exception as e:
-        print(f"An unexpected error occurred during uvicorn.run: {e}")
+    # Get the ASGI app for standard HTTP transport
+    # This is directly from FastMCP documentation for running with uvicorn
+    app = mcp.http_app() 
+    
+    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
