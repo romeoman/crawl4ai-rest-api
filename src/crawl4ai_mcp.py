@@ -74,9 +74,14 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
         # Clean up the crawler
         await crawler.__aexit__(None, None, None)
 
-# Initialize MCP Server
-# Give a more descriptive name to the MCP server instance
-mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI with web crawling and RAG capabilities.", allowed_origins=["*"])
+# Create FastMCP instance with configuration
+port_to_use = int(os.getenv("PORT", "11235"))
+host_to_use = os.getenv("HOST", "0.0.0.0")
+
+mcp = FastMCP(
+    "Crawl4AI MCP Server",
+    port=port_to_use  # Configure port directly on the instance
+)
 print("FastMCP instance created.")
 
 # Add health endpoint
@@ -592,9 +597,6 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 async def main_run_server():
     """Runs the MCP server using FastMCP's built-in methods."""
     
-    port_to_use = int(os.getenv("PORT", "11235"))
-    host_to_use = os.getenv("HOST", "0.0.0.0")
-
     print(f"FastMCP version: {fastmcp.__version__}")
     print(f"Starting MCP server on {host_to_use}:{port_to_use}")
 
@@ -604,8 +606,11 @@ async def main_run_server():
     # Check transport type and run accordingly
     transport = os.getenv("TRANSPORT", "sse")
     if transport == 'sse':
-        # Run the MCP server with sse transport, passing host and port directly
-        await mcp.run_sse_async(host=host_to_use, port=port_to_use)
+        # For SSE transport, also ensure the host is set via environment
+        os.environ['FASTMCP_HOST'] = host_to_use
+        
+        # Run the MCP server with sse transport
+        await mcp.run_sse_async()
     else:
         # Run the MCP server with stdio transport
         await mcp.run_stdio_async()
