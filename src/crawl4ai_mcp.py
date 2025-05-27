@@ -21,6 +21,7 @@ import os
 import re
 from starlette.responses import PlainTextResponse
 from starlette.requests import Request
+import uvicorn
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher
 from utils import get_supabase_client, add_documents_to_supabase, search_documents
@@ -73,13 +74,7 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
         await crawler.__aexit__(None, None, None)
 
 # Initialize FastMCP server
-mcp = FastMCP(
-    "mcp-crawl4ai-rag",
-    description="MCP server for RAG and web crawling with Crawl4AI",
-    lifespan=crawl4ai_lifespan,
-    host=os.getenv("HOST", "0.0.0.0"),
-    port=int(os.getenv("PORT", "8051"))
-)
+mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI with web crawling and RAG capabilities.")
 
 # Add health endpoint
 @mcp.custom_route("/health", methods=["GET"])
@@ -589,10 +584,26 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
             "error": str(e)
         }, indent=2)
 
+# MCP Server main execution
 async def main():
-    """Runs the MCP server with SSE transport."""
-    print("Attempting to start MCP server with SSE transport...")
-    await mcp.run_sse_async()
+    """Runs the MCP server using uvicorn and mcp.http_app()."""
+    print("Attempting to start MCP server with uvicorn and http_app...")
+    app = mcp.http_app() # Get the ASGI app for standard HTTP transport
+    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # No longer need asyncio.run(main()) as uvicorn.run() is synchronous
+    # and will block until the server is stopped.
+    # For asynchronous startup if needed in other contexts, one might use:
+    # config = uvicorn.Config(app, host="0.0.0.0", port=port)
+    # server = uvicorn.Server(config)
+    # asyncio.run(server.serve())
+    # However, for a simple script like this, direct uvicorn.run is fine.
+    
+    # Get the port from the environment variable, default to 11235 for local testing
+    port = int(os.getenv("PORT", "11235"))
+    # Get the ASGI app
+    app = mcp.http_app()
+    # Run the server with Uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port)
