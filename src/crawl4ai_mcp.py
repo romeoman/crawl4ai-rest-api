@@ -80,7 +80,8 @@ host_to_use = os.getenv("HOST", "0.0.0.0")
 
 mcp = FastMCP(
     "Crawl4AI MCP Server",
-    port=port_to_use  # Configure port directly on the instance
+    port=port_to_use,  # Configure port directly on the instance
+    host=host_to_use   # Configure host directly on the instance
 )
 print("FastMCP instance created.")
 
@@ -606,10 +607,8 @@ async def main_run_server():
     # Check transport type and run accordingly
     transport = os.getenv("TRANSPORT", "sse")
     if transport == 'sse':
-        # For SSE transport, also ensure the host is set via environment
-        os.environ['FASTMCP_HOST'] = host_to_use
-        
-        # Run the MCP server with sse transport
+        # Run the MCP server with sse transport using default parameters
+        # The port configuration is already passed during FastMCP instantiation
         await mcp.run_sse_async()
     else:
         # Run the MCP server with stdio transport
