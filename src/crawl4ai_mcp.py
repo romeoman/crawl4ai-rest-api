@@ -593,7 +593,7 @@ def main():
     
     # Get the ASGI app for standard HTTP transport
     # This is directly from FastMCP documentation for running with uvicorn
-    app = mcp.http_app() 
+    app = mcp.app
     
     port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
     uvicorn.run(app, host="0.0.0.0", port=port)
