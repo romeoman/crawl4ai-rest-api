@@ -586,24 +586,15 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 
 # MCP Server main execution
 async def main():
-    """Runs the MCP server using uvicorn and mcp.http_app()."""
-    print("Attempting to start MCP server with uvicorn and http_app...")
-    app = mcp.http_app() # Get the ASGI app for standard HTTP transport
-    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    """Runs the MCP server using uvicorn and the mcp instance directly."""
+    print("Attempting to start MCP server with uvicorn, passing mcp instance directly...")
+    port = int(os.getenv("PORT", "11235"))
+    # Pass the mcp FastMCP instance directly to uvicorn
+    uvicorn.run(mcp, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # No longer need asyncio.run(main()) as uvicorn.run() is synchronous
-    # and will block until the server is stopped.
-    # For asynchronous startup if needed in other contexts, one might use:
-    # config = uvicorn.Config(app, host="0.0.0.0", port=port)
-    # server = uvicorn.Server(config)
-    # asyncio.run(server.serve())
-    # However, for a simple script like this, direct uvicorn.run is fine.
-    
-    # Get the port from the environment variable, default to 11235 for local testing
-    port = int(os.getenv("PORT", "11235"))
-    # Get the ASGI app
-    app = mcp.http_app()
-    # Run the server with Uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # The main function now directly calls uvicorn.run, which is blocking.
+    # So, we just call main().
+    # For async main, one would typically do asyncio.run(main()), 
+    # but uvicorn.run handles its own loop or integrates with asyncio's.
+    asyncio.run(main()) # Ensure main is run in an event loop if uvicorn.run itself isn't blocking in this context
