@@ -12,7 +12,7 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urlparse, urldefrag
 from xml.etree import ElementTree
 from dotenv import load_dotenv
-from supabase import Client
+from supabase import Client, create_client
 from pathlib import Path
 import requests
 import asyncio
@@ -76,12 +76,14 @@ async def crawl4ai_lifespan(server: FastMCP) -> AsyncIterator[Crawl4AIContext]:
 
 # Initialize MCP Server
 # Give a more descriptive name to the MCP server instance
-mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI with web crawling and RAG capabilities.")
+mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI with web crawling and RAG capabilities.", allowed_origins=["*"])
+print("FastMCP instance created.")
 
 # Add health endpoint
 @mcp.custom_route("/health", methods=["GET"])
-async def health_check(request: Request) -> PlainTextResponse:
+def health_check(request: Request) -> PlainTextResponse:
     """Health check endpoint for Railway deployment."""
+    print("Health check endpoint hit!")
     return PlainTextResponse("healthy%")
 
 def is_sitemap(url: str) -> bool:
@@ -587,16 +589,47 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
         }, indent=2)
 
 # MCP Server main execution
-def main():
-    """Runs the MCP server using uvicorn and mcp.http_app()."""
-    print("Attempting to start MCP server with uvicorn and mcp.http_app()...")
+async def main_run_server():
+    """Runs the MCP server using FastMCP's built-in methods."""
     
-    # Get the ASGI app for standard HTTP transport
-    # This is directly from FastMCP documentation for running with uvicorn
-    app = mcp.app
-    
-    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port_to_use = int(os.getenv("PORT", "11235"))
+    host_to_use = os.getenv("HOST", "0.0.0.0")
+
+    print(f"FastMCP version: {fastmcp.__version__}")
+    print(f"Starting MCP server on {host_to_use}:{port_to_use}")
+
+    # Set up the lifespan for the MCP instance
+    mcp.lifespan = crawl4ai_lifespan
+    mcp.host = host_to_use
+    mcp.port = port_to_use
+
+    # Check transport type and run accordingly
+    transport = os.getenv("TRANSPORT", "sse")
+    if transport == 'sse':
+        # Run the MCP server with sse transport
+        await mcp.run_sse_async()
+    else:
+        # Run the MCP server with stdio transport
+        await mcp.run_stdio_async()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_run_server())
+
+# Placeholder for original tool definitions if they were extensive
+# Ensure they are adapted to use `mcp_server_instance` if they used a global `mcp`
+
+# Original global mcp instance (now created in main_run_server)
+# mcp = FastMCP(allowed_origins=["*"])
+
+# @data_model ... (ensure @data_model is compatible with this structure or defined before mcp instance use)
+# class SourceInfo:
+# ...
+
+# @tool ...
+# def get_available_sources(): ...
+
+# @custom_route ...
+# async def health_check(request): ...
+
+# @tool ...
+# async def scrape_website_mcp(url: str, source_id: str = None): ...
