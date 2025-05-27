@@ -19,6 +19,8 @@ import asyncio
 import json
 import os
 import re
+from starlette.responses import PlainTextResponse
+from starlette.requests import Request
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher
 from utils import get_supabase_client, add_documents_to_supabase, search_documents
@@ -80,10 +82,10 @@ mcp = FastMCP(
 )
 
 # Add health endpoint
-@mcp.get("/health")
-async def health():
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> PlainTextResponse:
     """Health check endpoint for Railway deployment."""
-    return {"status": "healthy", "service": "crawl4ai-mcp-rag"}
+    return PlainTextResponse("healthy")
 
 def is_sitemap(url: str) -> bool:
     """
@@ -588,13 +590,9 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
         }, indent=2)
 
 async def main():
-    transport = os.getenv("TRANSPORT", "sse")
-    if transport == 'sse':
-        # Run the MCP server with sse transport
-        await mcp.run_sse_async()
-    else:
-        # Run the MCP server with stdio transport
-        await mcp.run_stdio_async()
+    """Runs the MCP server with SSE transport."""
+    print("Attempting to start MCP server with SSE transport...")
+    await mcp.run_sse_async()
 
 if __name__ == "__main__":
     asyncio.run(main())
