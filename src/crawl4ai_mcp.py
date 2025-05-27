@@ -600,14 +600,12 @@ async def main_run_server():
 
     # Set up the lifespan for the MCP instance
     mcp.lifespan = crawl4ai_lifespan
-    mcp.host = host_to_use
-    mcp.port = port_to_use
 
     # Check transport type and run accordingly
     transport = os.getenv("TRANSPORT", "sse")
     if transport == 'sse':
-        # Run the MCP server with sse transport
-        await mcp.run_sse_async()
+        # Run the MCP server with sse transport, passing host and port directly
+        await mcp.run_sse_async(host=host_to_use, port=port_to_use)
     else:
         # Run the MCP server with stdio transport
         await mcp.run_stdio_async()
