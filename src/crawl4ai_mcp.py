@@ -585,7 +585,7 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
         }, indent=2)
 
 # MCP Server main execution
-async def main():
+def main():
     """Runs the MCP server using uvicorn and the mcp instance directly."""
     print("Attempting to start MCP server with uvicorn, passing mcp instance directly...")
     port = int(os.getenv("PORT", "11235"))
@@ -593,8 +593,4 @@ async def main():
     uvicorn.run(mcp, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # The main function now directly calls uvicorn.run, which is blocking.
-    # So, we just call main().
-    # For async main, one would typically do asyncio.run(main()), 
-    # but uvicorn.run handles its own loop or integrates with asyncio's.
-    asyncio.run(main()) # Ensure main is run in an event loop if uvicorn.run itself isn't blocking in this context
+    main()
