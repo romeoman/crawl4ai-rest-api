@@ -587,9 +587,9 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 # MCP Server main execution
 def main():
     """Runs the MCP server using mcp.run() with streamable-http transport."""
-    print("Attempting to start MCP server with mcp.run(transport='streamable-http')...")
-    port = int(os.getenv("PORT", "11235"))
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=port) # Using FastMCP's built-in runner
+    print("Attempting to start MCP server with mcp.run(transport='streamable-http') without host/port args...")
+    # For streamable-http, FastMCP might pick up host/port from env (e.g., Railway's PORT)
+    mcp.run(transport="streamable-http") 
 
 if __name__ == "__main__":
     main()
