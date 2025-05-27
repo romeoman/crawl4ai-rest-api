@@ -22,6 +22,7 @@ import re
 from starlette.responses import PlainTextResponse
 from starlette.requests import Request
 import uvicorn
+import fastmcp # Import to check version
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher
 from utils import get_supabase_client, add_documents_to_supabase, search_documents
@@ -586,10 +587,23 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 
 # MCP Server main execution
 def main():
-    """Runs the MCP server using mcp.run() with streamable-http transport."""
-    print("Attempting to start MCP server with mcp.run(transport='streamable-http') without host/port args...")
-    # For streamable-http, FastMCP might pick up host/port from env (e.g., Railway's PORT)
-    mcp.run(transport="streamable-http") 
+    """Runs the MCP server using uvicorn, trying mcp.app."""
+    try:
+        print(f"Attempting to print fastmcp version: {fastmcp.__version__}")
+    except AttributeError:
+        print("Could not retrieve fastmcp.__version__.")
+    
+    print("Attempting to start MCP server with uvicorn, trying mcp.app ...")
+    port = int(os.getenv("PORT", "11235"))
+    try:
+        # Attempt to run using mcp.app, a common way to get the ASGI app
+        uvicorn.run(mcp.app, host="0.0.0.0", port=port)
+    except AttributeError:
+        print("mcp.app not found. Falling back to passing mcp instance directly (likely to fail).")
+        # Fallback, which we know might cause 'FastMCP object is not callable'
+        uvicorn.run(mcp, host="0.0.0.0", port=port) 
+    except Exception as e:
+        print(f"An unexpected error occurred during uvicorn.run: {e}")
 
 if __name__ == "__main__":
     main()
