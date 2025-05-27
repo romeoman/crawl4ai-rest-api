@@ -586,15 +586,10 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 
 # MCP Server main execution
 def main():
-    """Runs the MCP server using uvicorn and mcp.http_app()."""
-    print("Attempting to start MCP server with uvicorn and mcp.http_app()...")
-    
-    # Get the ASGI app for standard HTTP transport
-    # This is directly from FastMCP documentation for running with uvicorn
-    app = mcp.http_app() 
-    
-    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    """Runs the MCP server using mcp.run() with streamable-http transport."""
+    print("Attempting to start MCP server with mcp.run(transport='streamable-http')...")
+    port = int(os.getenv("PORT", "11235"))
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=port) # Using FastMCP's built-in runner
 
 if __name__ == "__main__":
     main()
