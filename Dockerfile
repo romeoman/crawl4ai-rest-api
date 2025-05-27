@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir uv
 
 # Copy dependency files first for better Docker layer caching
 COPY pyproject.toml ./
+COPY README.md ./
 COPY uv.lock* ./
 
 # Install dependencies
@@ -26,7 +27,6 @@ RUN uv pip install --system --no-cache .
 
 # Copy source code
 COPY src/ ./src/
-COPY README.md ./
 
 # Run crawl4ai setup
 RUN crawl4ai-setup
