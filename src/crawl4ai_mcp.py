@@ -80,7 +80,7 @@ mcp = FastMCP(name="Crawl4AI-MCP-Server", description="MCP Server for Crawl4AI w
 @mcp.custom_route("/health", methods=["GET"])
 async def health_check(request: Request) -> PlainTextResponse:
     """Health check endpoint for Railway deployment."""
-    return PlainTextResponse("healthy")
+    return PlainTextResponse("healthy%")
 
 def is_sitemap(url: str) -> bool:
     """
@@ -586,11 +586,15 @@ async def perform_rag_query(ctx: Context, query: str, source: str = None, match_
 
 # MCP Server main execution
 def main():
-    """Runs the MCP server using uvicorn and the mcp instance directly."""
-    print("Attempting to start MCP server with uvicorn, passing mcp instance directly...")
-    port = int(os.getenv("PORT", "11235"))
-    # Pass the mcp FastMCP instance directly to uvicorn
-    uvicorn.run(mcp, host="0.0.0.0", port=port)
+    """Runs the MCP server using uvicorn and mcp.http_app()."""
+    print("Attempting to start MCP server with uvicorn and mcp.http_app()...")
+    
+    # Get the ASGI app for standard HTTP transport
+    # This is directly from FastMCP documentation for running with uvicorn
+    app = mcp.http_app() 
+    
+    port = int(os.getenv("PORT", "11235")) # Get port from Railway, default for local
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
     main()
