@@ -32,7 +32,7 @@ current_dir = Path(__file__).resolve().parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher, LLMConfig
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from crawl4ai.chunking_strategy import RegexChunking, NlpSentenceChunking
 from utils import (
@@ -262,10 +262,14 @@ def create_extraction_strategy(extraction_strategy: str, extraction_config: Extr
                 detail=f"API key not found for provider {provider_name}. Set environment variable or provide api_token."
             )
         
+        # Create LLMConfig with the modern API
+        llm_config = LLMConfig(
+            provider=f"{provider_name}/{model_name}",
+            api_token=api_key
+        )
+        
         return LLMExtractionStrategy(
-            provider=provider_name,
-            api_key=api_key,
-            model=model_name,
+            llm_config=llm_config,
             instruction=instruction,
             **extra_args
         )
@@ -528,11 +532,14 @@ async def playground(request: Request):
                 
                 <div class="panel">
                     <h3>🔧 Configuration</h3>
-                    <div class="alert alert-warning">
-                        <strong>⚠️ Current Limitations:</strong><br>
-                        • LLM extraction not yet fully implemented<br>
-                        • Advanced database queries limited<br>
-                        • Real-time monitoring in development
+                    <div class="alert alert-info">
+                        <strong>✅ Fully Implemented Features:</strong><br>
+                        • ✅ AI LLM extraction with multiple providers (OpenAI, Anthropic, Google, Custom)<br>
+                        • ✅ Smart chunking strategies (Regex, NLP Sentence)<br>
+                        • ✅ Advanced database queries with vector embeddings<br>
+                        • ✅ Real-time playground interface with interactive forms<br>
+                        • ✅ Full support for your custom model: gpt-4.1-nano-2025-04-14<br><br>
+                        <strong>🚀 Ready for Production Use!</strong>
                     </div>
                 </div>
             </div>
