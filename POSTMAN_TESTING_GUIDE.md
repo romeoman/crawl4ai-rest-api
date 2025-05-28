@@ -216,25 +216,40 @@ Authorization: Bearer {{apiKey}}
 
 ---
 
-### 7. Playground Interface (Now Available!)
-**Purpose:** Web interface for testing and database browsing
+### 7. Enhanced Playground Interface ✨
+**Purpose:** Advanced web interface recreating the original Crawl4AI playground experience
 
 ```http
 GET {{baseUrl}}/playground
 ```
 
-**Features:**
-- 🚀 **API Status Dashboard** - Real-time service information
-- 📡 **Endpoint Documentation** - Interactive API reference  
-- 🧪 **Quick Test Commands** - Copy-paste curl examples
-- 🗄️ **Database Information** - Connection status and config
-- 🔧 **Environment Details** - Production settings overview
-- 📚 **Resource Links** - Documentation and testing guides
+**🎯 Features (Just Like the Original!):**
+- **🧪 Interactive API Testing** - Real-time endpoint testing with dynamic forms
+- **🗄️ Database Browser** - Browse crawled sources and content with table views
+- **📊 System Monitoring** - Live status dashboard and configuration overview  
+- **📚 Comprehensive Documentation** - Built-in API reference and examples
+- **⚡ Live Request Generation** - Auto-generated cURL commands
+- **🔄 Real-time Responses** - Instant feedback with formatted JSON responses
 
-**Access:** Open `https://crawl4ai-production-9932.up.railway.app/playground` in your browser
+**🚀 Getting Started:**
+1. Open `https://crawl4ai-production-9932.up.railway.app/playground` in your browser
+2. Navigate between tabs: **API Testing** | **Database Browser** | **Monitoring** | **Documentation**
+3. Select an endpoint from the dropdown in the API Testing tab
+4. Fill in the dynamic form fields (auto-generated based on endpoint)
+5. Click "Execute Request" to see real-time results
+6. Use the Database Browser to explore crawled content
+7. Copy generated cURL commands for your own applications
 
-> ✅ **Now Available:** Basic playground interface has been added!
-> **Future Enhancements:** Interactive forms, database browser, real-time testing
+**💡 Pro Tips:**
+- **Database Browser** → Click "Refresh Sources" to see all crawled domains
+- **Click "Query" next to any source** → Auto-fills RAG query for that domain
+- **API Testing** → All forms are dynamic and validate input in real-time
+- **Monitoring Tab** → Check system status and current limitations
+- **Generated cURL** → Updates automatically as you change form inputs
+
+> ✅ **Fully Operational:** This enhanced playground recreates the **original advanced Crawl4AI playground** functionality!
+> 
+> **Perfect for:** Testing, development, database exploration, API discovery, and generating integration code
 
 ---
 
