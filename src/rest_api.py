@@ -285,166 +285,457 @@ async def health_check():
 
 @app.get("/playground")
 async def playground(request: Request):
-    """Simple web interface for testing the API and browsing data."""
+    """Advanced web interface for testing the API and browsing data - recreates the original Crawl4AI playground functionality."""
     html_content = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Crawl4AI REST API Playground</title>
+        <title>Crawl4AI Advanced Playground</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
-            .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-            .header { text-align: center; color: white; margin-bottom: 40px; }
-            .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
-            .header p { font-size: 1.1rem; opacity: 0.9; }
-            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-            .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-            .card h3 { color: #333; margin-bottom: 16px; font-size: 1.3rem; }
-            .endpoint { background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 8px 0; }
-            .method { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-            .get { background: #28a745; color: white; }
-            .post { background: #007bff; color: white; }
-            .endpoint-path { font-family: monospace; color: #495057; margin-left: 8px; }
-            .endpoint-desc { font-size: 0.9rem; color: #6c757d; margin-top: 4px; }
-            .info-section { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 16px; margin: 16px 0; border-radius: 4px; }
-            .warning-section { background: #fff3e0; border-left: 4px solid #ff9800; padding: 16px; margin: 16px 0; border-radius: 4px; }
-            .code { background: #f4f4f4; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.9rem; }
-            .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
-            .status-healthy { background: #28a745; }
-            .status-pending { background: #ffc107; }
-            .button { background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 6px; 
-                     cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
-            .button:hover { background: #0056b3; }
-            .env-vars { font-size: 0.85rem; line-height: 1.6; }
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+                min-height: 100vh; 
+                color: #333;
+            }
+            .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; color: white; margin-bottom: 30px; }
+            .header h1 { font-size: 2.8rem; margin-bottom: 8px; font-weight: 300; }
+            .header p { font-size: 1.2rem; opacity: 0.9; }
+            .nav-tabs { display: flex; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 4px; margin-bottom: 30px; }
+            .nav-tab { flex: 1; padding: 12px 20px; text-align: center; border-radius: 8px; color: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.3s; }
+            .nav-tab.active { background: rgba(255,255,255,0.2); color: white; }
+            .nav-tab:hover { background: rgba(255,255,255,0.15); color: white; }
+            .tab-content { display: none; }
+            .tab-content.active { display: block; }
+            .panel { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+            .form-group { margin-bottom: 20px; }
+            .form-label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50; }
+            .form-input { width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; }
+            .form-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+            .form-textarea { min-height: 120px; resize: vertical; font-family: 'Monaco', 'Courier New', monospace; }
+            .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+            .btn-primary { background: #3498db; color: white; }
+            .btn-primary:hover { background: #2980b9; transform: translateY(-2px); }
+            .btn-success { background: #27ae60; color: white; }
+            .btn-success:hover { background: #219a52; }
+            .btn-danger { background: #e74c3c; color: white; }
+            .btn-danger:hover { background: #c0392b; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .response-area { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 16px; font-family: monospace; min-height: 200px; white-space: pre-wrap; overflow-x: auto; }
+            .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+            .status-success { background: #27ae60; }
+            .status-error { background: #e74c3c; }
+            .status-pending { background: #f39c12; animation: pulse 1.5s infinite; }
+            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+            .endpoint-card { background: #f8f9fa; border-left: 4px solid #3498db; padding: 16px; margin: 12px 0; border-radius: 0 8px 8px 0; }
+            .method-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-right: 8px; }
+            .method-get { background: #27ae60; color: white; }
+            .method-post { background: #3498db; color: white; }
+            .database-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            .database-table th, .database-table td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+            .database-table th { background: #f8f9fa; font-weight: 600; }
+            .loading { display: none; text-align: center; padding: 20px; }
+            .loading.show { display: block; }
+            .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            .code-block { background: #2c3e50; color: #ecf0f1; padding: 16px; border-radius: 8px; font-family: 'Monaco', 'Courier New', monospace; overflow-x: auto; }
+            .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+            .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+            .alert-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>🕷️ Crawl4AI REST API Playground</h1>
-                <p>Interactive testing interface for the Crawl4AI FastAPI deployment</p>
+                <h1>🕷️ Crawl4AI Advanced Playground</h1>
+                <p>Interactive testing interface with database browser and real-time API testing</p>
             </div>
             
-            <div class="grid">
-                <!-- API Status -->
-                <div class="card">
-                    <h3><span class="status-indicator status-healthy"></span>API Status</h3>
-                    <p><strong>Base URL:</strong> <span class="code">""" + str(request.base_url) + """</span></p>
-                    <p><strong>Service:</strong> Crawl4AI REST API</p>
-                    <p><strong>Environment:</strong> Railway Production</p>
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="showTab('test')">🧪 API Testing</div>
+                <div class="nav-tab" onclick="showTab('database')">🗄️ Database Browser</div>
+                <div class="nav-tab" onclick="showTab('monitor')">📊 Monitoring</div>
+                <div class="nav-tab" onclick="showTab('docs')">📚 Documentation</div>
+            </div>
+            
+            <!-- API Testing Tab -->
+            <div id="test-tab" class="tab-content active">
+                <div class="grid">
+                    <div class="panel">
+                        <h3>🚀 Test API Endpoints</h3>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Endpoint</label>
+                            <select id="endpoint-select" class="form-input" onchange="updateEndpointForm()">
+                                <option value="health">GET /health - Health Check</option>
+                                <option value="crawl-single">POST /crawl/single - Single Page Crawl</option>
+                                <option value="crawl-smart">POST /crawl/smart - Smart Multi-page Crawl</option>
+                                <option value="query-rag">POST /query/rag - RAG Query</option>
+                                <option value="sources">GET /sources - Available Sources</option>
+                                <option value="check-freshness">POST /check-freshness - Check URL Freshness</option>
+                            </select>
+                        </div>
+                        
+                        <div id="endpoint-form">
+                            <!-- Dynamic form content will be inserted here -->
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="executeRequest()">
+                            <span id="request-status"></span> Execute Request
+                        </button>
+                    </div>
                     
-                    <div class="info-section">
-                        <strong>🔑 Authentication Required:</strong><br>
-                        Bearer Token: <span class="code">secure-crawl4ai-bearer-token-2024</span>
+                    <div class="panel">
+                        <h3>📨 Response</h3>
+                        <div id="response-status" class="alert alert-info" style="display: none;"></div>
+                        <div class="loading" id="loading">
+                            <div class="spinner"></div> Processing request...
+                        </div>
+                        <div id="response-area" class="response-area">Click "Execute Request" to see response</div>
                     </div>
                 </div>
                 
-                <!-- Available Endpoints -->
-                <div class="card">
-                    <h3>📡 Available Endpoints</h3>
-                    
-                    <div class="endpoint">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-path">/health</span>
-                        <div class="endpoint-desc">Check API health status</div>
+                <div class="panel">
+                    <h3>📋 Generated cURL Command</h3>
+                    <div id="curl-command" class="code-block">Select an endpoint and fill the form to generate cURL command</div>
+                </div>
+            </div>
+            
+            <!-- Database Browser Tab -->
+            <div id="database-tab" class="tab-content">
+                <div class="panel">
+                    <h3>🗄️ Database Browser</h3>
+                    <div class="alert alert-info">
+                        <strong>Database Status:</strong> Connected to Supabase PostgreSQL with vector embeddings
                     </div>
                     
-                    <div class="endpoint">
-                        <span class="method post">POST</span>
-                        <span class="endpoint-path">/crawl/single</span>
-                        <div class="endpoint-desc">Crawl a single webpage</div>
-                    </div>
+                    <button class="btn btn-primary" onclick="loadSources()">🔄 Refresh Sources</button>
+                    <button class="btn btn-success" onclick="loadRecentCrawls()">📅 Recent Crawls</button>
                     
-                    <div class="endpoint">
-                        <span class="method post">POST</span>
-                        <span class="endpoint-path">/crawl/smart</span>
-                        <div class="endpoint-desc">Smart multi-page crawling</div>
+                    <div id="database-content">
+                        <p>Click "Refresh Sources" to browse crawled content</p>
                     </div>
-                    
-                    <div class="endpoint">
-                        <span class="method post">POST</span>
-                        <span class="endpoint-path">/query/rag</span>
-                        <div class="endpoint-desc">Query crawled content with RAG</div>
-                    </div>
-                    
-                    <div class="endpoint">
-                        <span class="method get">GET</span>
-                        <span class="endpoint-path">/sources</span>
-                        <div class="endpoint-desc">List all crawled sources</div>
-                    </div>
-                    
-                    <div class="endpoint">
-                        <span class="method post">POST</span>
-                        <span class="endpoint-path">/check-freshness</span>
-                        <div class="endpoint-desc">Check URL freshness status</div>
+                </div>
+            </div>
+            
+            <!-- Monitoring Tab -->
+            <div id="monitor-tab" class="tab-content">
+                <div class="panel">
+                    <h3>📊 System Status</h3>
+                    <div class="grid">
+                        <div>
+                            <h4><span class="status-indicator status-success"></span>API Status</h4>
+                            <p><strong>Base URL:</strong> """ + str(request.base_url) + """</p>
+                            <p><strong>Environment:</strong> Railway Production</p>
+                            <p><strong>Service:</strong> Crawl4AI REST API</p>
+                        </div>
+                        <div>
+                            <h4><span class="status-indicator status-success"></span>Database Status</h4>
+                            <p><strong>Provider:</strong> Supabase PostgreSQL</p>
+                            <p><strong>Features:</strong> Vector embeddings, RAG queries</p>
+                            <p><strong>Freshness Period:</strong> 30 days</p>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- Quick Test -->
-                <div class="card">
-                    <h3>🧪 Quick Test</h3>
-                    <p>Test the health endpoint:</p>
-                    <div class="code">
-curl -H "Authorization: Bearer secure-crawl4ai-bearer-token-2024" \\<br>
-&nbsp;&nbsp;&nbsp;&nbsp;""" + str(request.base_url) + """health
-                    </div>
-                    
-                    <p style="margin-top: 16px;">Test a simple crawl:</p>
-                    <div class="code">
-curl -X POST \\<br>
-&nbsp;&nbsp;-H "Authorization: Bearer secure-crawl4ai-bearer-token-2024" \\<br>
-&nbsp;&nbsp;-H "Content-Type: application/json" \\<br>
-&nbsp;&nbsp;-d '{"url": "https://example.com"}' \\<br>
-&nbsp;&nbsp;""" + str(request.base_url) + """crawl/single
-                    </div>
-                </div>
-                
-                <!-- Database Info -->
-                <div class="card">
-                    <h3>🗄️ Database Status</h3>
-                    <p><strong>Database:</strong> Supabase PostgreSQL</p>
-                    <p><strong>Features:</strong> Vector embeddings, RAG queries</p>
-                    <p><strong>Freshness Period:</strong> 30 days</p>
-                    
-                    <div class="warning-section">
+                <div class="panel">
+                    <h3>🔧 Configuration</h3>
+                    <div class="alert alert-warning">
                         <strong>⚠️ Current Limitations:</strong><br>
-                        • LLM extraction not yet implemented<br>
-                        • Database browser not available<br>
-                        • Interactive testing limited
+                        • LLM extraction not yet fully implemented<br>
+                        • Advanced database queries limited<br>
+                        • Real-time monitoring in development
                     </div>
                 </div>
-                
-                <!-- Environment -->
-                <div class="card">
-                    <h3>🔧 Environment Configuration</h3>
-                    <div class="env-vars">
-                        <strong>Production Settings:</strong><br>
-                        • PORT: 8000<br>
-                        • FRESHNESS_PERIOD_DAYS: 30<br>
-                        • Browser: Chromium (headless)<br>
-                        • Chunking: Smart markdown splitting<br>
-                        • Authentication: Bearer token required
-                    </div>
-                </div>
-                
-                <!-- Resources -->
-                <div class="card">
-                    <h3>📚 Resources</h3>
-                    <p><strong>Documentation:</strong></p>
-                    <p>• Check <span class="code">POSTMAN_TESTING_GUIDE.md</span> for detailed API docs</p>
-                    <p>• See <span class="code">API_CREDENTIALS.txt</span> for authentication details</p>
+            </div>
+            
+            <!-- Documentation Tab -->
+            <div id="docs-tab" class="tab-content">
+                <div class="panel">
+                    <h3>📚 Quick Reference</h3>
                     
-                    <p style="margin-top: 12px;"><strong>Testing Tools:</strong></p>
-                    <p>• Use Postman for comprehensive testing</p>
-                    <p>• Try <span class="code">test_rest_api.py</span> for automated tests</p>
-                    <p>• Monitor logs: <span class="code">railway logs</span></p>
+                    <div class="endpoint-card">
+                        <span class="method-badge method-get">GET</span>
+                        <strong>/health</strong>
+                        <p>Check API health status</p>
+                    </div>
+                    
+                    <div class="endpoint-card">
+                        <span class="method-badge method-post">POST</span>
+                        <strong>/crawl/single</strong>
+                        <p>Crawl a single webpage and store content with embeddings</p>
+                        <div class="code-block">{"url": "https://example.com", "force_recrawl": false}</div>
+                    </div>
+                    
+                    <div class="endpoint-card">
+                        <span class="method-badge method-post">POST</span>
+                        <strong>/crawl/smart</strong>
+                        <p>Smart multi-page crawling with link discovery</p>
+                        <div class="code-block">{"url": "https://example.com", "max_depth": 3, "max_concurrent": 10}</div>
+                    </div>
+                    
+                    <div class="endpoint-card">
+                        <span class="method-badge method-post">POST</span>
+                        <strong>/query/rag</strong>
+                        <p>Query crawled content using RAG (Retrieval-Augmented Generation)</p>
+                        <div class="code-block">{"query": "What are the main features?", "match_count": 5}</div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h3>🔑 Authentication</h3>
+                    <p><strong>Type:</strong> Bearer Token</p>
+                    <div class="code-block">Authorization: Bearer secure-crawl4ai-bearer-token-2024</div>
+                    
+                    <h3 style="margin-top: 20px;">📖 Resources</h3>
+                    <p>• Check <code>POSTMAN_TESTING_GUIDE.md</code> for detailed API documentation</p>
+                    <p>• See <code>API_CREDENTIALS.txt</code> for authentication details</p>
+                    <p>• Use Railway logs: <code>railway logs</code> for monitoring</p>
                 </div>
             </div>
         </div>
+        
+        <script>
+            const API_BASE = '""" + str(request.base_url) + """';
+            const API_KEY = 'secure-crawl4ai-bearer-token-2024';
+            
+            function showTab(tabName) {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+                
+                // Show selected tab
+                document.getElementById(tabName + '-tab').classList.add('active');
+                event.target.classList.add('active');
+            }
+            
+            function updateEndpointForm() {
+                const endpoint = document.getElementById('endpoint-select').value;
+                const form = document.getElementById('endpoint-form');
+                
+                switch(endpoint) {
+                    case 'health':
+                        form.innerHTML = '<p class="alert alert-info">No parameters required for health check</p>';
+                        break;
+                    case 'crawl-single':
+                        form.innerHTML = `
+                            <div class="form-group">
+                                <label class="form-label">URL to Crawl</label>
+                                <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="force_recrawl"> Force Recrawl
+                                </label>
+                            </div>
+                        `;
+                        break;
+                    case 'crawl-smart':
+                        form.innerHTML = `
+                            <div class="form-group">
+                                <label class="form-label">URL to Crawl</label>
+                                <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Depth</label>
+                                <input type="number" id="max_depth" class="form-input" value="3" min="1" max="10">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Concurrent</label>
+                                <input type="number" id="max_concurrent" class="form-input" value="10" min="1" max="50">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="force_recrawl"> Force Recrawl
+                                </label>
+                            </div>
+                        `;
+                        break;
+                    case 'query-rag':
+                        form.innerHTML = `
+                            <div class="form-group">
+                                <label class="form-label">Query</label>
+                                <textarea id="query" class="form-input form-textarea" placeholder="What information are you looking for?" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Source Filter (optional)</label>
+                                <input type="text" id="source" class="form-input" placeholder="example.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Match Count</label>
+                                <input type="number" id="match_count" class="form-input" value="5" min="1" max="20">
+                            </div>
+                        `;
+                        break;
+                    case 'sources':
+                        form.innerHTML = '<p class="alert alert-info">No parameters required for listing sources</p>';
+                        break;
+                    case 'check-freshness':
+                        form.innerHTML = `
+                            <div class="form-group">
+                                <label class="form-label">URL to Check</label>
+                                <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Freshness Days</label>
+                                <input type="number" id="freshness_days" class="form-input" value="30" min="1">
+                            </div>
+                        `;
+                        break;
+                }
+                updateCurlCommand();
+            }
+            
+            function updateCurlCommand() {
+                const endpoint = document.getElementById('endpoint-select').value;
+                const curlElement = document.getElementById('curl-command');
+                
+                let curl = `curl -H "Authorization: Bearer ${API_KEY}" \\\\`;
+                
+                switch(endpoint) {
+                    case 'health':
+                        curl += `\\n     "${API_BASE}health"`;
+                        break;
+                    case 'sources':
+                        curl += `\\n     "${API_BASE}sources"`;
+                        break;
+                    default:
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com"}' \\\\\\n     "${API_BASE}${endpoint.replace('-', '/')}"`;
+                }
+                
+                curlElement.textContent = curl;
+            }
+            
+            async function executeRequest() {
+                const endpoint = document.getElementById('endpoint-select').value;
+                const loading = document.getElementById('loading');
+                const responseArea = document.getElementById('response-area');
+                const statusDiv = document.getElementById('response-status');
+                
+                loading.classList.add('show');
+                responseArea.textContent = '';
+                statusDiv.style.display = 'none';
+                
+                try {
+                    let url = API_BASE + endpoint.replace('-', '/');
+                    let options = {
+                        headers: {
+                            'Authorization': 'Bearer ' + API_KEY,
+                            'Content-Type': 'application/json'
+                        }
+                    };
+                    
+                    if (!['health', 'sources'].includes(endpoint)) {
+                        options.method = 'POST';
+                        options.body = JSON.stringify(buildRequestBody(endpoint));
+                    }
+                    
+                    const response = await fetch(url, options);
+                    const data = await response.json();
+                    
+                    loading.classList.remove('show');
+                    
+                    if (response.ok) {
+                        statusDiv.className = 'alert alert-info';
+                        statusDiv.textContent = `✅ Success (${response.status})`;
+                        statusDiv.style.display = 'block';
+                    } else {
+                        statusDiv.className = 'alert alert-warning';
+                        statusDiv.textContent = `⚠️ Error (${response.status})`;
+                        statusDiv.style.display = 'block';
+                    }
+                    
+                    responseArea.textContent = JSON.stringify(data, null, 2);
+                } catch (error) {
+                    loading.classList.remove('show');
+                    statusDiv.className = 'alert alert-warning';
+                    statusDiv.textContent = `❌ Request failed: ${error.message}`;
+                    statusDiv.style.display = 'block';
+                    responseArea.textContent = 'Error: ' + error.message;
+                }
+            }
+            
+            function buildRequestBody(endpoint) {
+                const body = {};
+                
+                switch(endpoint) {
+                    case 'crawl-single':
+                        body.url = document.getElementById('url')?.value || '';
+                        body.force_recrawl = document.getElementById('force_recrawl')?.checked || false;
+                        break;
+                    case 'crawl-smart':
+                        body.url = document.getElementById('url')?.value || '';
+                        body.max_depth = parseInt(document.getElementById('max_depth')?.value) || 3;
+                        body.max_concurrent = parseInt(document.getElementById('max_concurrent')?.value) || 10;
+                        body.force_recrawl = document.getElementById('force_recrawl')?.checked || false;
+                        break;
+                    case 'query-rag':
+                        body.query = document.getElementById('query')?.value || '';
+                        body.source = document.getElementById('source')?.value || '';
+                        body.match_count = parseInt(document.getElementById('match_count')?.value) || 5;
+                        break;
+                    case 'check-freshness':
+                        body.url = document.getElementById('url')?.value || '';
+                        body.freshness_days = parseInt(document.getElementById('freshness_days')?.value) || 30;
+                        break;
+                }
+                
+                return body;
+            }
+            
+            async function loadSources() {
+                const content = document.getElementById('database-content');
+                content.innerHTML = '<div class="loading show"><div class="spinner"></div> Loading sources...</div>';
+                
+                try {
+                    const response = await fetch(API_BASE + 'sources', {
+                        headers: { 'Authorization': 'Bearer ' + API_KEY }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success && data.sources.length > 0) {
+                        let html = '<h4>📊 Available Sources (' + data.sources.length + ')</h4>';
+                        html += '<table class="database-table"><thead><tr><th>Domain</th><th>Actions</th></tr></thead><tbody>';
+                        
+                        data.sources.forEach(source => {
+                            html += `<tr><td>${source}</td><td><button class="btn btn-primary" onclick="querySource('${source}')">Query</button></td></tr>`;
+                        });
+                        
+                        html += '</tbody></table>';
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<p>No sources found. Try crawling some content first.</p>';
+                    }
+                } catch (error) {
+                    content.innerHTML = '<p class="alert alert-warning">Error loading sources: ' + error.message + '</p>';
+                }
+            }
+            
+            function querySource(source) {
+                // Switch to API testing tab and pre-fill RAG query
+                showTab('test');
+                document.getElementById('endpoint-select').value = 'query-rag';
+                updateEndpointForm();
+                setTimeout(() => {
+                    document.getElementById('source').value = source;
+                    document.getElementById('query').value = 'What content is available from this source?';
+                }, 100);
+            }
+            
+            async function loadRecentCrawls() {
+                const content = document.getElementById('database-content');
+                content.innerHTML = '<div class="alert alert-info">Recent crawls feature will be implemented soon. For now, use the Sources view to browse crawled content.</div>';
+            }
+            
+            // Initialize the page
+            document.addEventListener('DOMContentLoaded', function() {
+                updateEndpointForm();
+            });
+        </script>
     </body>
     </html>
     """
