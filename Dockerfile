@@ -26,13 +26,14 @@ RUN uv pip install --system --no-cache .
 COPY src/ ./src/
 COPY start_rest_api.py ./
 
-# Run crawl4ai setup
-RUN crawl4ai-setup
-
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 RUN chown -R app:app /app
 USER app
+
+# Run crawl4ai setup and install playwright browsers as the app user
+RUN crawl4ai-setup
+RUN playwright install chromium
 
 # Use our startup script that properly handles Railway's PORT environment variable
 CMD ["python", "start_rest_api.py"] 
