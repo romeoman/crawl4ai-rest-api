@@ -58,6 +58,52 @@ To run locally:
 2. Set up environment variables in `.env`
 3. Run: `uv run src/crawl4ai_mcp.py`
 
+## Claude Desktop Setup
+
+To use the deployed Crawl4AI MCP server with Claude Desktop, simply add this configuration to your Claude Desktop MCP settings:
+
+**For Claude Desktop on macOS:**
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**For Claude Desktop on Windows:**  
+Edit `%APPDATA%/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "crawl4ai-rag": {
+      "transport": "sse",
+      "url": "https://crawl4ai-production-9932.up.railway.app/sse"
+    }
+  }
+}
+```
+
+### Testing the Setup
+
+After adding the configuration to Claude Desktop:
+
+1. **Restart Claude Desktop** completely
+2. Start a new conversation
+3. Type `@crawl4ai-rag` to see available tools:
+   - `crawl_single_page` - Crawl a single webpage
+   - `smart_crawl_url` - Intelligently crawl websites with depth control
+   - `get_available_sources` - List all crawled sources  
+   - `perform_rag_query` - Search crawled content with RAG
+
+### Example Usage
+
+Once configured, you can use the tools like this:
+
+```
+Can you crawl the FastAPI documentation homepage and then search for information about async functions?
+```
+
+Claude Desktop will:
+1. Use `crawl_single_page` to crawl https://fastapi.tiangolo.com/
+2. Use `perform_rag_query` to search for "async functions" in the crawled content
+3. Provide you with relevant information from the documentation
+
 ## Usage with MCP Clients
 
 Add to your MCP client configuration:
@@ -66,13 +112,8 @@ Add to your MCP client configuration:
 {
   "mcpServers": {
     "crawl4ai-rag": {
-      "command": "uv",
-      "args": ["run", "src/crawl4ai_mcp.py"],
-      "env": {
-        "SUPABASE_URL": "your-supabase-url",
-        "SUPABASE_SERVICE_KEY": "your-service-key",
-        "OPENAI_API_KEY": "your-openai-key"
-      }
+      "transport": "sse",
+      "url": "https://crawl4ai-production-9932.up.railway.app/sse"
     }
   }
 }

@@ -1,0 +1,71 @@
+# Crawl4AI RAG Railway Deployment PRD
+
+## Project Overview
+Deploy the Crawl4AI RAG MCP Server to Railway cloud platform, connecting it to a Supabase PostgreSQL database for production use.
+
+## Current State
+- Local mcp-crawl4ai-rag application working with Docker
+- Crawl4AI Docker image already deployed and running on Railway
+- Supabase PostgreSQL database configured with proper schema (crawled_pages.sql)
+- Need to connect Railway deployment to Supabase database
+
+## Objectives
+1. Migrate the MCP server from local Docker to Railway cloud deployment
+2. Configure Railway environment variables for Supabase connection
+3. Ensure proper database connectivity and vector search functionality
+4. Maintain all existing MCP tools: crawl_single_page, smart_crawl_url, get_available_sources, perform_rag_query
+5. Test the deployed application for full functionality
+
+## Technical Requirements
+
+### Railway Deployment
+- Deploy the MCP server as a web service on Railway
+- Configure proper environment variables
+- Ensure the server runs on Railway's assigned port
+- Set up health checks and monitoring
+
+### Database Integration
+- Connect to existing Supabase PostgreSQL database
+- Verify pgvector extension is working
+- Test vector similarity search functionality
+- Ensure proper authentication and security
+
+### Environment Configuration
+- SUPABASE_URL: Connect to user's Supabase instance
+- SUPABASE_SERVICE_KEY: Authentication for database access
+- OPENAI_API_KEY: For embedding generation
+- HOST and PORT: Railway-specific configuration
+- TRANSPORT: SSE or stdio based on client needs
+
+### MCP Server Functionality
+- Maintain all existing crawling capabilities
+- Ensure vector embeddings are properly generated and stored
+- Verify RAG query functionality with source filtering
+- Test recursive crawling and batch processing
+
+## Success Criteria
+1. MCP server successfully deployed on Railway
+2. Database connection established to Supabase
+3. All MCP tools functional in cloud environment
+4. Vector search queries returning accurate results
+5. Crawling and storing content working end-to-end
+6. Proper error handling and logging in production
+
+## Constraints
+- Must use existing Supabase database schema
+- Cannot modify the core MCP tool functionality
+- Must maintain compatibility with MCP clients (Claude Desktop, Windsurf, etc.)
+- Railway platform limitations and resource constraints
+
+## Implementation Phases
+1. **Environment Setup**: Configure Railway project and environment variables
+2. **Database Connection**: Test and verify Supabase connectivity
+3. **Deployment Configuration**: Set up Railway deployment files and settings
+4. **Testing**: Verify all MCP tools work in cloud environment
+5. **Documentation**: Update configuration docs for Railway deployment
+
+## Risks and Mitigations
+- **Database Connection Issues**: Test connection strings and authentication
+- **Port Configuration**: Ensure Railway port binding works correctly
+- **Environment Variables**: Verify all secrets are properly configured
+- **Resource Limits**: Monitor Railway resource usage and optimize if needed
