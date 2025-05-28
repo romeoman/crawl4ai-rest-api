@@ -222,15 +222,12 @@ class AvailableSourcesResponse(BaseModel):
 # Helper functions for AI extraction
 def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
     """Create an extraction strategy based on the configuration."""
-    print(f"🔧 DEBUG: Creating extraction strategy: {extraction_strategy}")
     if extraction_strategy == "LLMExtractionStrategy":
         # Parse provider format
         provider = extraction_config.provider
         api_token = extraction_config.api_token
         instruction = extraction_config.instruction
         extra_args = extraction_config.extra_args or {}
-        
-        print(f"🔧 DEBUG: Provider={provider}, Has API token={api_token is not None}")
         
         # Handle different provider formats
         if provider.startswith("openai/"):
@@ -259,8 +256,6 @@ def create_extraction_strategy(extraction_strategy: str, extraction_config: Extr
                 provider_name = "openai"
                 api_key = api_token or os.getenv("OPENAI_API_KEY")
         
-        print(f"🔧 DEBUG: Parsed provider_name={provider_name}, model_name={model_name}")
-        
         if not api_key:
             raise HTTPException(
                 status_code=400,
@@ -268,13 +263,11 @@ def create_extraction_strategy(extraction_strategy: str, extraction_config: Extr
             )
         
         # Create LLMConfig with the modern API
-        print(f"🔧 DEBUG: Creating LLMConfig with provider={provider_name}/{model_name}")
         llm_config = LLMConfig(
             provider=f"{provider_name}/{model_name}",
             api_token=api_key
         )
         
-        print(f"🔧 DEBUG: Creating LLMExtractionStrategy with LLMConfig")
         return LLMExtractionStrategy(
             llm_config=llm_config,
             instruction=instruction,

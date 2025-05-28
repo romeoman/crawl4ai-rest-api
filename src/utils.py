@@ -8,6 +8,7 @@ import json
 from supabase import create_client, Client
 from urllib.parse import urlparse
 import openai
+from datetime import datetime, timedelta
 
 # Load OpenAI API key for embeddings
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -293,3 +294,85 @@ def search_documents(
     except Exception as e:
         print(f"Error searching documents: {e}")
         return []
+
+def check_url_freshness(client: Client, url: str, freshness_days: int = 30) -> Tuple[bool, Optional[datetime]]:
+    """
+    Check if a URL was crawled recently within the freshness period.
+    
+    Args:
+        client: Supabase client
+        url: The URL to check
+        freshness_days: Number of days to consider content fresh (default: 30)
+        
+    Returns:
+        Tuple containing:
+        - Boolean indicating if the URL is fresh (True) or needs re-crawling (False)
+        - The datetime when it was last crawled, or None if never crawled
+    """
+    try:
+        # Calculate the cutoff date
+        cutoff_date = datetime.utcnow() - timedelta(days=freshness_days)
+        
+        # Query the database to check when this URL was last crawled
+        result = client.table("crawled_pages")\
+            .select("created_at")\
+            .eq("url", url)\
+            .order("created_at", desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if not result.data:
+            # URL has never been crawled
+            return False, None
+        
+        # Get the most recent crawl date
+        last_crawled_str = result.data[0]["created_at"]
+        last_crawled = datetime.fromisoformat(last_crawled_str.replace('Z', '+00:00'))
+        
+        # Check if it's within the freshness period
+        is_fresh = last_crawled > cutoff_date
+        
+        return is_fresh, last_crawled
+        
+    except Exception as e:
+        print(f"Error checking URL freshness: {e}")
+        # In case of error, assume we should crawl (err on the side of freshness)
+        return False, None
+
+def get_stale_urls(client: Client, urls: List[str], freshness_days: int = 30) -> List[str]:
+    """
+    Filter a list of URLs to return only those that need re-crawling.
+    
+    Args:
+        client: Supabase client
+        urls: List of URLs to check
+        freshness_days: Number of days to consider content fresh (default: 30)
+        
+    Returns:
+        List of URLs that need to be crawled (either never crawled or stale)
+    """
+    stale_urls = []
+    
+    for url in urls:
+        is_fresh, last_crawled = check_url_freshness(client, url, freshness_days)
+        if not is_fresh:
+            stale_urls.append(url)
+    
+    return stale_urls
+
+def validate_api_key(api_key: str) -> bool:
+    """
+    Validate the provided API key against the configured API key.
+    
+    Args:
+        api_key: The API key to validate
+        
+    Returns:
+        Boolean indicating if the API key is valid
+    """
+    expected_api_key = os.getenv("CRAWL4AI_API_KEY")
+    if not expected_api_key:
+        # If no API key is configured, allow all requests (for backward compatibility)
+        return True
+    
+    return api_key == expected_api_key

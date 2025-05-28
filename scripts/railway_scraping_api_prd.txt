@@ -1,0 +1,238 @@
+# Railway-Hosted Scraping REST API PRD
+
+## 1. Introduction
+
+This document outlines the requirements for a REST API service, hosted on Railway, designed for web scraping and data retrieval. The API will provide endpoints to initiate scraping tasks and fetch stored scraped data. The primary technology stack will be Python with FastAPI for the API and PostgreSQL for data storage, all deployed on Railway.
+
+## 2. Goals
+
+-   Develop a scalable and reliable web scraping API.
+-   Deploy the API on Railway for ease of management and scalability.
+-   Provide secure endpoints for initiating scraping and retrieving data.
+-   Store scraped data persistently in a PostgreSQL database.
+-   Ensure the API is accessible via standard cURL commands or HTTP clients.
+
+## 3. User Stories
+
+-   As a developer, I want to send a URL to a `POST` endpoint to have its content scraped.
+-   As a developer, I want to specify scraping parameters (e.g., elements to extract, format) with the `POST` request.
+-   As a developer, I want the scraping task to run asynchronously if it's a long process.
+-   As a developer, I want to receive a task ID or confirmation when a scraping job is initiated.
+-   As a developer, I want to use a `GET` endpoint with a task ID or query parameters to retrieve the scraped data.
+-   As a developer, I want the scraped data to be stored in a structured format in a PostgreSQL database.
+-   As an administrator, I want secure API key authentication for all endpoints.
+-   As an administrator, I want the API and database to be easily deployable and manageable on Railway.
+
+## 4. Functional Requirements
+
+### 4.1. API Endpoints
+
+#### 4.1.1. `POST /scrape`
+    -   **Description:** Initiates a web scraping task for a given URL.
+    -   **Request Body (JSON):**
+        ```json
+        {
+            "url": "string (required)",
+            "target_elements": ["string (css_selector)"], // Optional: Specific CSS selectors to scrape
+            "output_format": "string (markdown|html|text)", // Optional: Defaults to text
+            "use_playwright": "boolean" // Optional: Defaults to false (use Playwright for JS-heavy sites)
+        }
+        ```
+    -   **Response (JSON):**
+        -   **Success (202 Accepted):**
+            ```json
+            {
+                "task_id": "string",
+                "status": "pending",
+                "message": "Scraping task accepted."
+            }
+            ```
+        -   **Error (4xx/5xx):** Standard error JSON response.
+    -   **Behavior:**
+        -   Validates the input URL and parameters.
+        -   Queues the scraping task (e.g., using Railway background workers or a simple task queue).
+        -   Returns a unique `task_id`.
+        -   Scraping should be performed by a suitable Python library (e.g., `BeautifulSoup`, `requests`, or `Playwright` via `crawl4ai` if `use_playwright` is true).
+
+#### 4.1.2. `GET /scrape/status/{task_id}`
+    -   **Description:** Checks the status of a previously initiated scraping task.
+    -   **Path Parameter:** `task_id` (string, required)
+    -   **Response (JSON):**
+        -   **Success (200 OK):**
+            ```json
+            {
+                "task_id": "string",
+                "status": "string (pending|in-progress|completed|failed)",
+                "url": "string",
+                "created_at": "timestamp",
+                "updated_at": "timestamp",
+                "message": "string (optional, e.g., error message if failed)"
+            }
+            ```
+        -   **Error (404 Not Found / 4xx/5xx):** Standard error JSON response.
+
+#### 4.1.3. `GET /scrape/data/{task_id}`
+    -   **Description:** Retrieves the scraped data for a completed task.
+    -   **Path Parameter:** `task_id` (string, required)
+    -   **Response (JSON):**
+        -   **Success (200 OK):**
+            ```json
+            {
+                "task_id": "string",
+                "url": "string",
+                "scraped_at": "timestamp",
+                "output_format": "string",
+                "data": "string (content in specified output_format)", // or structured data if applicable
+                "target_elements_found": "integer" // if target_elements were specified
+            }
+            ```
+        -   **Error (404 Not Found / 4xx/5xx):** Standard error JSON response. Only returns data if task status is "completed".
+
+#### 4.1.4. `GET /data` (Optional - for listing/querying)
+    -   **Description:** Retrieves a list of scraped data entries, potentially with filtering.
+    -   **Query Parameters (Optional):**
+        -   `url_contains`: string
+        -   `limit`: integer (default 10)
+        -   `offset`: integer (default 0)
+        -   `status`: string (pending|in-progress|completed|failed)
+    -   **Response (JSON):**
+        ```json
+        {
+            "count": "integer",
+            "next_offset": "integer | null",
+            "previous_offset": "integer | null",
+            "results": [
+                {
+                    "task_id": "string",
+                    "url": "string",
+                    "status": "string",
+                    "created_at": "timestamp",
+                    "scraped_at": "timestamp | null"
+                }
+            ]
+        }
+        ```
+
+### 4.2. Scraping Logic
+    -   Use Python libraries like `requests` and `BeautifulSoup` for basic static HTML scraping.
+    -   Integrate `crawl4ai` or directly use `Playwright` for JavaScript-heavy pages when `use_playwright: true`.
+    -   Handle common HTTP errors (4xx, 5xx) gracefully during scraping.
+    -   Implement basic retry mechanisms for transient network issues.
+    -   Store scraped content along with metadata (URL, scrape timestamp, status, task_id).
+
+### 4.3. Data Storage
+    -   **Database:** PostgreSQL (hosted on Railway).
+    -   **Schema (example `scraped_data` table):**
+        -   `task_id`: UUID (Primary Key)
+        -   `url`: TEXT (Indexed)
+        -   `status`: VARCHAR(20) (e.g., pending, in-progress, completed, failed) (Indexed)
+        -   `raw_content`: TEXT (the scraped content)
+        -   `output_format`: VARCHAR(10)
+        -   `target_elements_requested`: JSONB (array of selectors)
+        -   `target_elements_found`: INTEGER
+        -   `error_message`: TEXT (if status is failed)
+        -   `created_at`: TIMESTAMP WITH TIME ZONE (default NOW())
+        -   `updated_at`: TIMESTAMP WITH TIME ZONE (default NOW())
+        -   `scraped_at`: TIMESTAMP WITH TIME ZONE (nullable)
+    -   Use an ORM like SQLAlchemy with Alembic for migrations or a simpler library like `asyncpg` or `psycopg2-binary` for direct DB interaction.
+
+### 4.4. Authentication
+    -   API Key authentication for all endpoints.
+    -   The API key should be passed in a request header (e.g., `X-API-KEY`).
+    -   Keys should be configurable via environment variables on Railway.
+
+### 4.5. Asynchronous Task Processing
+    -   Scraping tasks initiated via `POST /scrape` should be processed asynchronously to avoid long-hanging HTTP requests.
+    -   This can be achieved using:
+        -   FastAPI's `BackgroundTasks`.
+        -   A simple in-memory queue if the load is low.
+        -   A more robust solution like Redis + RQ/Celery if scaling requirements are higher (consider for future, start simple).
+        -   Railway's built-in background worker capabilities if applicable.
+
+## 5. Non-Functional Requirements
+
+### 5.1. Performance
+    -   `POST /scrape` endpoint: Response time < 500ms (acknowledging task).
+    -   `GET /scrape/status/{task_id}`: Response time < 200ms.
+    -   `GET /scrape/data/{task_id}`: Response time < 500ms (for reasonable data sizes).
+    -   Scraping tasks should complete within a reasonable timeframe (e.g., < 60 seconds for typical pages, configurable timeout).
+
+### 5.2. Scalability
+    -   The API should be scalable on Railway by adjusting service resources.
+    -   The database should handle a growing amount of scraped data.
+
+### 5.3. Reliability
+    -   The API should be highly available.
+    -   Proper error handling and logging should be implemented.
+    -   Data should be stored durably in PostgreSQL.
+
+### 5.4. Security
+    -   Secure API key authentication.
+    -   Protection against common web vulnerabilities (e.g., SQL injection if not using ORM properly, XSS if any HTML is ever rendered).
+    -   Environment variables for sensitive configurations (API keys, DB credentials).
+    -   HTTPS enforced by Railway.
+
+### 5.5. Maintainability
+    -   Well-structured Python code (FastAPI).
+    -   Clear separation of concerns (API, scraping logic, data access).
+    -   Unit and integration tests.
+    -   Comprehensive logging.
+
+## 6. Technology Stack
+
+-   **Programming Language:** Python 3.9+
+-   **API Framework:** FastAPI
+-   **Data Storage:** PostgreSQL (Railway addon)
+-   **Scraping Libraries:** `requests`, `BeautifulSoup4`, `Playwright` (via `crawl4ai` or direct)
+-   **Deployment Platform:** Railway
+-   **Task Queuing (Initial):** FastAPI `BackgroundTasks` or simple in-memory queue.
+-   **Database Interaction:** SQLAlchemy with Alembic (recommended) or `asyncpg`/`psycopg2-binary`.
+-   **HTTP Client (for testing):** cURL, HTTPie, or Postman.
+
+## 7. Deployment on Railway
+
+-   The application will be containerized (Dockerfile).
+-   Railway build and deploy process will be used.
+-   Environment variables for API keys, database URL, etc., will be configured in Railway.
+-   A PostgreSQL service will be provisioned on Railway and linked to the API service.
+
+## 8. Project Plan (High-Level Phases)
+
+### Phase 1: Core API & Local Development Setup
+    -   Set up local Python environment (Poetry or venv).
+    -   Initialize FastAPI project.
+    -   Implement basic `POST /scrape` and `GET /scrape/status/{task_id}` endpoints (in-memory initially, no DB).
+    -   Implement API Key authentication middleware.
+    -   Basic scraping logic using `requests` and `BeautifulSoup`.
+
+### Phase 2: Database Integration & Async Tasks
+    -   Set up local PostgreSQL (Docker or local install).
+    -   Define database schema and implement models/migrations (SQLAlchemy/Alembic).
+    -   Integrate database with API endpoints.
+    -   Implement FastAPI `BackgroundTasks` for asynchronous scraping.
+    -   Develop `GET /scrape/data/{task_id}` endpoint.
+
+### Phase 3: Advanced Scraping & Railway Deployment
+    -   Integrate `Playwright` (e.g. via `crawl4ai`) for dynamic content scraping.
+    -   Refine error handling and logging.
+    -   Create Dockerfile for the application.
+    -   Deploy to Railway:
+        -   Set up Railway project and PostgreSQL addon.
+        -   Configure environment variables on Railway.
+        -   Deploy the application.
+    -   Implement `GET /data` endpoint.
+
+### Phase 4: Testing & Documentation
+    -   Write unit and integration tests.
+    -   Perform end-to-end testing on Railway.
+    -   Write API documentation (e.g., using FastAPI's automatic OpenAPI docs, plus simple cURL examples).
+
+## 9. Future Considerations
+    -   More robust task queuing (Redis/Celery/RQ).
+    -   User agent rotation for scraping.
+    -   Proxy support for scraping.
+    -   Webhook notifications for completed/failed tasks.
+    -   Admin interface for managing tasks and data.
+    -   Rate limiting and usage quotas.
+
+This provides a solid foundation. We can refine task details as we go. 
