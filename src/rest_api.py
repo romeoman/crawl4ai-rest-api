@@ -765,8 +765,20 @@ async def playground(request: Request):
                     case 'sources':
                         curl += `\\n     "${API_BASE}sources"`;
                         break;
+                    case 'check-freshness':
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com", "freshness_days": 30}' \\\\\\n     "${API_BASE}check-freshness"`;
+                        break;
+                    case 'crawl-single':
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com"}' \\\\\\n     "${API_BASE}crawl/single"`;
+                        break;
+                    case 'crawl-smart':
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com"}' \\\\\\n     "${API_BASE}crawl/smart"`;
+                        break;
+                    case 'query-rag':
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"query": "example query"}' \\\\\\n     "${API_BASE}query/rag"`;
+                        break;
                     default:
-                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com"}' \\\\\\n     "${API_BASE}${endpoint.replace('-', '/')}"`;
+                        curl += `\\n     -H "Content-Type: application/json" \\\\\\n     -X POST \\\\\\n     -d '{"url": "https://example.com"}' \\\\\\n     "${API_BASE}${endpoint}"`;
                 }
                 
                 curlElement.textContent = curl;
@@ -783,7 +795,31 @@ async def playground(request: Request):
                 statusDiv.style.display = 'none';
                 
                 try {
-                    let url = API_BASE + endpoint.replace('-', '/');
+                    let url;
+                    // Map endpoint names to correct API paths
+                    switch(endpoint) {
+                        case 'health':
+                            url = API_BASE + 'health';
+                            break;
+                        case 'sources':
+                            url = API_BASE + 'sources';
+                            break;
+                        case 'check-freshness':
+                            url = API_BASE + 'check-freshness';
+                            break;
+                        case 'crawl-single':
+                            url = API_BASE + 'crawl/single';
+                            break;
+                        case 'crawl-smart':
+                            url = API_BASE + 'crawl/smart';
+                            break;
+                        case 'query-rag':
+                            url = API_BASE + 'query/rag';
+                            break;
+                        default:
+                            url = API_BASE + endpoint;
+                    }
+                    
                     let options = {
                         headers: {
                             'Authorization': 'Bearer ' + API_KEY,
