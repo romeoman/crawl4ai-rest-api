@@ -78,13 +78,12 @@ Content-Type: application/json
 ```
 
 **Note about AI Extraction:** 
-> ⚠️ **Current Limitation:** The production FastAPI does not yet support LLM extraction strategies. 
-> The examples below show the intended format, but extraction_strategy and extraction_config are not implemented yet.
+> ✅ **Now Fully Available!** The production FastAPI now supports LLM extraction strategies with multiple AI providers.
 > 
-> **Working Features:** Basic crawling, content storage, RAG queries, freshness checking
-> **Future Enhancement:** LLM extraction will be added in upcoming releases
+> **Supported Features:** Multiple AI providers (OpenAI, Anthropic, Google, Custom models), Flexible chunking strategies, Intelligent content extraction, Enhanced metadata tracking
+> **Your Custom Model:** Full support for `gpt-4.1-nano-2025-04-14` ✅
 
-**Future Request Body (With AI Extraction - Not Yet Implemented):**
+**Request Body (With AI Extraction - Now Available!):**
 ```json
 {
   "url": "https://example.com",
@@ -108,6 +107,8 @@ Content-Type: application/json
 - Anthropic: `"anthropic/claude-3-sonnet"`
 - Google: `"google/gemini-pro"`
 
+**Note:** ✅ **AI extraction is now fully supported!** Use the second request body format above to enable intelligent content extraction with your preferred AI model.
+
 ---
 
 ### 3. Smart Crawl (Multi-page)
@@ -127,6 +128,28 @@ Content-Type: application/json
   "max_concurrent": 10,
   "chunk_size": 5000,
   "force_recrawl": false
+}
+```
+
+**Request Body (With AI Extraction):**
+```json
+{
+  "url": "https://example.com",
+  "max_depth": 3,
+  "max_concurrent": 10,
+  "chunk_size": 5000,
+  "force_recrawl": false,
+  "extraction_strategy": "LLMExtractionStrategy",
+  "extraction_config": {
+    "provider": "gpt-4.1-nano-2025-04-14",
+    "api_token": "your-api-key",
+    "instruction": "Extract the main content and key information from each page"
+  },
+  "chunking_strategy": "RegexChunking",
+  "css_selector": "body",
+  "screenshot": false,
+  "user_agent": "Crawl4AI-Bot/1.0",
+  "verbose": true
 }
 ```
 

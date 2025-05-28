@@ -33,6 +33,8 @@ if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode, MemoryAdaptiveDispatcher
+from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from crawl4ai.chunking_strategy import RegexChunking, NlpSentenceChunking
 from utils import (
     get_supabase_client, add_documents_to_supabase, search_documents,
     check_url_freshness, get_stale_urls, validate_api_key
@@ -149,9 +151,22 @@ app.add_middleware(
 )
 
 # Pydantic models for request/response
+class ExtractionConfig(BaseModel):
+    provider: str  # e.g., "openai/gpt-4o-mini", "anthropic/claude-3-sonnet", "gpt-4.1-nano-2025-04-14"
+    api_token: Optional[str] = None  # Will use environment variable if not provided
+    instruction: str = "Extract the main content and key information"
+    extra_args: Optional[Dict[str, Any]] = {}
+
 class CrawlSinglePageRequest(BaseModel):
     url: str
     force_recrawl: bool = False
+    extraction_strategy: Optional[str] = None  # "LLMExtractionStrategy" or None
+    extraction_config: Optional[ExtractionConfig] = None
+    chunking_strategy: Optional[str] = "RegexChunking"  # "RegexChunking" or "NlpSentenceChunking"
+    css_selector: Optional[str] = "body"
+    screenshot: bool = False
+    user_agent: Optional[str] = "Crawl4AI-Bot/1.0"
+    verbose: bool = True
 
 class CrawlSinglePageResponse(BaseModel):
     success: bool
@@ -168,6 +183,13 @@ class SmartCrawlRequest(BaseModel):
     max_concurrent: int = 10
     chunk_size: int = 5000
     force_recrawl: bool = False
+    extraction_strategy: Optional[str] = None  # "LLMExtractionStrategy" or None
+    extraction_config: Optional[ExtractionConfig] = None
+    chunking_strategy: Optional[str] = "RegexChunking"  # "RegexChunking" or "NlpSentenceChunking"
+    css_selector: Optional[str] = "body"
+    screenshot: bool = False
+    user_agent: Optional[str] = "Crawl4AI-Bot/1.0"
+    verbose: bool = True
 
 class SmartCrawlResponse(BaseModel):
     success: bool
@@ -196,6 +218,68 @@ class AvailableSourcesResponse(BaseModel):
     sources: List[str] = []
     count: Optional[int] = None
     error: Optional[str] = None
+
+# Helper functions for AI extraction
+def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
+    """Create an extraction strategy based on the configuration."""
+    if extraction_strategy == "LLMExtractionStrategy":
+        # Parse provider format
+        provider = extraction_config.provider
+        api_token = extraction_config.api_token
+        instruction = extraction_config.instruction
+        extra_args = extraction_config.extra_args or {}
+        
+        # Handle different provider formats
+        if provider.startswith("openai/"):
+            model_name = provider.split("/", 1)[1]
+            api_key = api_token or os.getenv("OPENAI_API_KEY")
+            provider_name = "openai"
+        elif provider.startswith("anthropic/"):
+            model_name = provider.split("/", 1)[1]
+            api_key = api_token or os.getenv("ANTHROPIC_API_KEY")
+            provider_name = "anthropic"
+        elif provider.startswith("google/"):
+            model_name = provider.split("/", 1)[1]
+            api_key = api_token or os.getenv("GOOGLE_API_KEY")
+            provider_name = "google"
+        else:
+            # Handle custom model names (like gpt-4.1-nano-2025-04-14)
+            model_name = provider
+            # Try to guess provider from model name or default to openai
+            if "claude" in provider.lower():
+                provider_name = "anthropic"
+                api_key = api_token or os.getenv("ANTHROPIC_API_KEY")
+            elif "gemini" in provider.lower():
+                provider_name = "google"
+                api_key = api_token or os.getenv("GOOGLE_API_KEY")
+            else:
+                provider_name = "openai"
+                api_key = api_token or os.getenv("OPENAI_API_KEY")
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail=f"API key not found for provider {provider_name}. Set environment variable or provide api_token."
+            )
+        
+        return LLMExtractionStrategy(
+            provider=provider_name,
+            api_key=api_key,
+            model=model_name,
+            instruction=instruction,
+            **extra_args
+        )
+    else:
+        return None
+
+def create_chunking_strategy(chunking_strategy: str):
+    """Create a chunking strategy based on the strategy name."""
+    if chunking_strategy == "RegexChunking":
+        return RegexChunking()
+    elif chunking_strategy == "NlpSentenceChunking":
+        return NlpSentenceChunking()
+    else:
+        return RegexChunking()  # Default
 
 # Helper functions (unchanged from original)
 def is_sitemap(url: str) -> bool:
@@ -532,6 +616,39 @@ async def playground(request: Request):
                                     <input type="checkbox" id="force_recrawl"> Force Recrawl
                                 </label>
                             </div>
+                            <h4>🤖 AI Extraction (Optional)</h4>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="enable_ai" onchange="toggleAIFields()"> Enable AI Content Extraction
+                                </label>
+                            </div>
+                            <div id="ai-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">AI Provider/Model</label>
+                                    <select id="ai_provider" class="form-input">
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Model)</option>
+                                        <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
+                                        <option value="openai/gpt-4">OpenAI GPT-4</option>
+                                        <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
+                                        <option value="google/gemini-pro">Google Gemini Pro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Extraction Instruction</label>
+                                    <textarea id="ai_instruction" class="form-input form-textarea" placeholder="Extract the main content and key information">Extract the main content and key information</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">API Token (optional - uses env vars if not provided)</label>
+                                    <input type="password" id="ai_token" class="form-input" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Chunking Strategy</label>
+                                    <select id="chunking_strategy" class="form-input">
+                                        <option value="RegexChunking">Regex Chunking (Default)</option>
+                                        <option value="NlpSentenceChunking">NLP Sentence Chunking</option>
+                                    </select>
+                                </div>
+                            </div>
                         `;
                         break;
                     case 'crawl-smart':
@@ -552,6 +669,39 @@ async def playground(request: Request):
                                 <label class="form-label">
                                     <input type="checkbox" id="force_recrawl"> Force Recrawl
                                 </label>
+                            </div>
+                            <h4>🤖 AI Extraction (Optional)</h4>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="enable_ai" onchange="toggleAIFields()"> Enable AI Content Extraction
+                                </label>
+                            </div>
+                            <div id="ai-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label class="form-label">AI Provider/Model</label>
+                                    <select id="ai_provider" class="form-input">
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Model)</option>
+                                        <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
+                                        <option value="openai/gpt-4">OpenAI GPT-4</option>
+                                        <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
+                                        <option value="google/gemini-pro">Google Gemini Pro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Extraction Instruction</label>
+                                    <textarea id="ai_instruction" class="form-input form-textarea" placeholder="Extract the main content and key information">Extract the main content and key information</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">API Token (optional - uses env vars if not provided)</label>
+                                    <input type="password" id="ai_token" class="form-input" placeholder="sk-...">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Chunking Strategy</label>
+                                    <select id="chunking_strategy" class="form-input">
+                                        <option value="RegexChunking">Regex Chunking (Default)</option>
+                                        <option value="NlpSentenceChunking">NLP Sentence Chunking</option>
+                                    </select>
+                                </div>
                             </div>
                         `;
                         break;
@@ -666,12 +816,40 @@ async def playground(request: Request):
                     case 'crawl-single':
                         body.url = document.getElementById('url')?.value || '';
                         body.force_recrawl = document.getElementById('force_recrawl')?.checked || false;
+                        
+                        // Add AI extraction if enabled
+                        if (document.getElementById('enable_ai')?.checked) {
+                            body.extraction_strategy = 'LLMExtractionStrategy';
+                            body.extraction_config = {
+                                provider: document.getElementById('ai_provider')?.value || 'gpt-4.1-nano-2025-04-14',
+                                instruction: document.getElementById('ai_instruction')?.value || 'Extract the main content and key information'
+                            };
+                            const apiToken = document.getElementById('ai_token')?.value;
+                            if (apiToken) {
+                                body.extraction_config.api_token = apiToken;
+                            }
+                            body.chunking_strategy = document.getElementById('chunking_strategy')?.value || 'RegexChunking';
+                        }
                         break;
                     case 'crawl-smart':
                         body.url = document.getElementById('url')?.value || '';
                         body.max_depth = parseInt(document.getElementById('max_depth')?.value) || 3;
                         body.max_concurrent = parseInt(document.getElementById('max_concurrent')?.value) || 10;
                         body.force_recrawl = document.getElementById('force_recrawl')?.checked || false;
+                        
+                        // Add AI extraction if enabled
+                        if (document.getElementById('enable_ai')?.checked) {
+                            body.extraction_strategy = 'LLMExtractionStrategy';
+                            body.extraction_config = {
+                                provider: document.getElementById('ai_provider')?.value || 'gpt-4.1-nano-2025-04-14',
+                                instruction: document.getElementById('ai_instruction')?.value || 'Extract the main content and key information'
+                            };
+                            const apiToken = document.getElementById('ai_token')?.value;
+                            if (apiToken) {
+                                body.extraction_config.api_token = apiToken;
+                            }
+                            body.chunking_strategy = document.getElementById('chunking_strategy')?.value || 'RegexChunking';
+                        }
                         break;
                     case 'query-rag':
                         body.query = document.getElementById('query')?.value || '';
@@ -685,6 +863,15 @@ async def playground(request: Request):
                 }
                 
                 return body;
+            }
+            
+            function toggleAIFields() {
+                const aiFields = document.getElementById('ai-fields');
+                const enableAI = document.getElementById('enable_ai');
+                if (enableAI && aiFields) {
+                    aiFields.style.display = enableAI.checked ? 'block' : 'none';
+                }
+                updateCurlCommand();
             }
             
             async function loadSources() {
@@ -802,7 +989,7 @@ async def crawl_single_page(
     Crawl a single webpage and store the content with embeddings.
     
     This endpoint crawls a single URL, extracts the content, and stores it in the database
-    with generated embeddings for future similarity searches.
+    with generated embeddings for future similarity searches. Supports AI extraction strategies.
     """
     try:
         if not app_context:
@@ -826,8 +1013,28 @@ async def crawl_single_page(
                     content_length=0
                 )
         
+        # Configure extraction strategy
+        extraction_strategy = None
+        if request.extraction_strategy and request.extraction_config:
+            extraction_strategy = create_extraction_strategy(
+                request.extraction_strategy, 
+                request.extraction_config
+            )
+        
+        # Configure chunking strategy
+        chunking_strategy = create_chunking_strategy(request.chunking_strategy or "RegexChunking")
+        
         # Configure the crawl
-        run_config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, stream=False)
+        run_config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS, 
+            stream=False,
+            extraction_strategy=extraction_strategy,
+            chunking_strategy=chunking_strategy,
+            css_selector=request.css_selector or "body",
+            screenshot=request.screenshot,
+            user_agent=request.user_agent,
+            verbose=request.verbose
+        )
         
         # Perform the crawl
         result = await crawler.arun(url=url, config=run_config)
@@ -838,14 +1045,17 @@ async def crawl_single_page(
                 error=f"Failed to crawl {url}: {result.error_message}"
             )
         
-        if not result.markdown:
+        # Use extracted_content if AI extraction was used, otherwise use markdown
+        content = result.extracted_content if extraction_strategy and result.extracted_content else result.markdown
+        
+        if not content:
             return CrawlSinglePageResponse(
                 success=False,
                 error=f"No content extracted from {url}"
             )
         
         # Chunk the content
-        chunks = smart_chunk_markdown(result.markdown)
+        chunks = smart_chunk_markdown(content)
         
         # Prepare data for storage
         urls = [url] * len(chunks)
@@ -861,12 +1071,14 @@ async def crawl_single_page(
                 "word_count": section_info["word_count"],
                 "char_count": section_info["char_count"],
                 "chunk_number": i + 1,
-                "total_chunks": len(chunks)
+                "total_chunks": len(chunks),
+                "extraction_strategy": request.extraction_strategy or "none",
+                "ai_extracted": bool(extraction_strategy and result.extracted_content)
             }
             metadatas.append(metadata)
         
         # Create URL to full document mapping
-        url_to_full_document = {url: result.markdown}
+        url_to_full_document = {url: content}
         
         # Store in database
         add_documents_to_supabase(
@@ -881,7 +1093,7 @@ async def crawl_single_page(
         return CrawlSinglePageResponse(
             success=True,
             url=url,
-            content_length=len(result.markdown),
+            content_length=len(content),
             chunks_stored=len(chunks),
             was_fresh=False,
             last_crawled=None
@@ -915,6 +1127,13 @@ async def smart_crawl_url(
         max_concurrent = request.max_concurrent
         chunk_size = request.chunk_size
         force_recrawl = request.force_recrawl
+        extraction_strategy = request.extraction_strategy
+        extraction_config = request.extraction_config
+        chunking_strategy = request.chunking_strategy
+        css_selector = request.css_selector
+        screenshot = request.screenshot
+        user_agent = request.user_agent
+        verbose = request.verbose
         
         crawler = app_context.crawler
         supabase_client = app_context.supabase_client
