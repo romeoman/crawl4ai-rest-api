@@ -219,6 +219,12 @@ class AvailableSourcesResponse(BaseModel):
     count: Optional[int] = None
     error: Optional[str] = None
 
+class RecentCrawlsResponse(BaseModel):
+    success: bool
+    recent_crawls: List[Dict[str, Any]] = []
+    count: Optional[int] = None
+    error: Optional[str] = None
+
 # Helper functions for AI extraction
 def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
     """Create an extraction strategy based on the configuration."""
@@ -963,7 +969,60 @@ async def playground(request: Request):
             
             async function loadRecentCrawls() {
                 const content = document.getElementById('database-content');
-                content.innerHTML = '<div class="alert alert-info">Recent crawls feature will be implemented soon. For now, use the Sources view to browse crawled content.</div>';
+                content.innerHTML = '<div class="loading show"><div class="spinner"></div> Loading recent crawls...</div>';
+                
+                try {
+                    const response = await fetch(API_BASE + 'recent-crawls?limit=15', {
+                        headers: { 'Authorization': 'Bearer ' + API_KEY }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success && data.recent_crawls.length > 0) {
+                        let html = '<h4>🕒 Recent Crawls (' + data.recent_crawls.length + ')</h4>';
+                        html += '<table class="database-table">';
+                        html += '<thead><tr><th>URL</th><th>Title</th><th>Source</th><th>Chunks</th><th>AI Extracted</th><th>Crawled</th><th>Actions</th></tr></thead>';
+                        html += '<tbody>';
+                        
+                        data.recent_crawls.forEach(crawl => {
+                            const crawlDate = new Date(crawl.crawled_at).toLocaleString();
+                            const shortUrl = crawl.url.length > 50 ? crawl.url.substring(0, 47) + '...' : crawl.url;
+                            const shortTitle = crawl.title.length > 30 ? crawl.title.substring(0, 27) + '...' : crawl.title;
+                            const aiIcon = crawl.ai_extracted ? '🤖' : '📄';
+                            const aiStatus = crawl.ai_extracted ? 'Yes (' + crawl.extraction_strategy + ')' : 'No';
+                            
+                            html += `<tr>
+                                <td><a href="${crawl.url}" target="_blank" title="${crawl.url}">${shortUrl}</a></td>
+                                <td title="${crawl.title}">${shortTitle}</td>
+                                <td>${crawl.source}</td>
+                                <td>${crawl.chunk_count}</td>
+                                <td>${aiIcon} ${aiStatus}</td>
+                                <td>${crawlDate}</td>
+                                <td>
+                                    <button class="btn btn-primary" onclick="querySource('${crawl.source}')" style="margin-right: 5px;">Query</button>
+                                    <button class="btn btn-success" onclick="recrawlUrl('${crawl.url}')">Re-crawl</button>
+                                </td>
+                            </tr>`;
+                        });
+                        
+                        html += '</tbody></table>';
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<p>No recent crawls found. Try crawling some content first.</p>';
+                    }
+                } catch (error) {
+                    content.innerHTML = '<p class="alert alert-warning">Error loading recent crawls: ' + error.message + '</p>';
+                }
+            }
+            
+            function recrawlUrl(url) {
+                // Switch to API testing tab and pre-fill single page crawl
+                showTab('test');
+                document.getElementById('endpoint-select').value = 'crawl-single';
+                updateEndpointForm();
+                setTimeout(() => {
+                    document.getElementById('url').value = url;
+                    document.getElementById('force_recrawl').checked = true;
+                }, 100);
             }
             
             // Initialize the page
@@ -1449,6 +1508,78 @@ async def crawl_recursive_internal_links(crawler: AsyncWebCrawler, start_urls: L
         current_urls = next_level_urls
 
     return results_all
+
+@app.get("/recent-crawls", response_model=RecentCrawlsResponse)
+async def get_recent_crawls(
+    limit: int = 10,
+    api_key: str = Depends(get_api_key)
+) -> RecentCrawlsResponse:
+    """
+    Get recently crawled URLs with their metadata.
+    
+    This endpoint returns a list of recently crawled URLs ordered by crawl date,
+    showing useful information like title, source, crawl date, and chunk counts.
+    """
+    try:
+        if not app_context:
+            raise HTTPException(status_code=500, detail="Server not properly initialized")
+        
+        supabase_client = app_context.supabase_client
+        
+        # Query recent crawls grouped by URL to get unique pages
+        # We'll get the most recent entry for each URL
+        result = supabase_client.from_('crawled_pages')\
+            .select('url, metadata, created_at')\
+            .order('created_at', desc=True)\
+            .limit(limit * 5)\
+            .execute()  # Get more results to filter duplicates
+        
+        if not result.data:
+            return RecentCrawlsResponse(
+                success=True,
+                recent_crawls=[],
+                count=0
+            )
+        
+        # Group by URL to get unique pages with their most recent crawl info
+        url_to_crawl = {}
+        for item in result.data:
+            url = item['url']
+            if url not in url_to_crawl:
+                metadata = item.get('metadata', {})
+                url_to_crawl[url] = {
+                    'url': url,
+                    'title': metadata.get('title', 'No title'),
+                    'source': metadata.get('source', 'Unknown'),
+                    'crawled_at': item['created_at'],
+                    'ai_extracted': metadata.get('ai_extracted', False),
+                    'extraction_strategy': metadata.get('extraction_strategy', 'none')
+                }
+        
+        # Get chunk counts for each URL
+        recent_crawls = []
+        for url, crawl_info in list(url_to_crawl.items())[:limit]:
+            # Count chunks for this URL
+            chunk_count_result = supabase_client.from_('crawled_pages')\
+                .select('url', count='exact')\
+                .eq('url', url)\
+                .execute()
+            
+            chunk_count = chunk_count_result.count if chunk_count_result.count else 0
+            crawl_info['chunk_count'] = chunk_count
+            recent_crawls.append(crawl_info)
+        
+        return RecentCrawlsResponse(
+            success=True,
+            recent_crawls=recent_crawls,
+            count=len(recent_crawls)
+        )
+        
+    except Exception as e:
+        return RecentCrawlsResponse(
+            success=False,
+            error=str(e)
+        )
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
