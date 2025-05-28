@@ -152,7 +152,7 @@ app.add_middleware(
 
 # Pydantic models for request/response
 class ExtractionConfig(BaseModel):
-    provider: str  # e.g., "openai/gpt-4o-mini", "anthropic/claude-3-sonnet", "gpt-4.1-nano-2025-04-14"
+    provider: str = "google/gemini-2.5-flash-preview-05-20"  # Default to Google Gemini
     api_token: Optional[str] = None  # Will use environment variable if not provided
     instruction: str = "Extract the main content and key information"
     extra_args: Optional[Dict[str, Any]] = {}
@@ -591,7 +591,12 @@ async def playground(request: Request):
         </div>
         
         <script>
-            const API_BASE = '""" + str(request.base_url) + """';
+            // Fix for Railway HTTPS deployment - force HTTPS for production
+            let baseUrl = '""" + str(request.base_url) + """';
+            if (window.location.protocol === 'https:' && baseUrl.startsWith('http://')) {
+                baseUrl = baseUrl.replace('http://', 'https://');
+            }
+            const API_BASE = baseUrl;
             const API_KEY = 'secure-crawl4ai-bearer-token-2024';
             
             function showTab(tabName) {
@@ -633,11 +638,11 @@ async def playground(request: Request):
                                 <div class="form-group">
                                     <label class="form-label">AI Provider/Model</label>
                                     <select id="ai_provider" class="form-input">
-                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Model)</option>
-                                        <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
-                                        <option value="openai/gpt-4">OpenAI GPT-4</option>
-                                        <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
-                                        <option value="google/gemini-pro">Google Gemini Pro</option>
+                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview (Default)</option>
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Custom Model)</option>
+                                        <option value="openai/gpt-4.1-nano-2025-04-14">OpenAI GPT-4.1 Nano</option>
+                                        <option value="anthropic/claude-3-5-haiku-20241022">Anthropic Claude 3.5 Haiku</option>
+                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -687,11 +692,11 @@ async def playground(request: Request):
                                 <div class="form-group">
                                     <label class="form-label">AI Provider/Model</label>
                                     <select id="ai_provider" class="form-input">
-                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Model)</option>
-                                        <option value="openai/gpt-4o-mini">OpenAI GPT-4o Mini</option>
-                                        <option value="openai/gpt-4">OpenAI GPT-4</option>
-                                        <option value="anthropic/claude-3-sonnet">Anthropic Claude 3 Sonnet</option>
-                                        <option value="google/gemini-pro">Google Gemini Pro</option>
+                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview (Default)</option>
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Custom Model)</option>
+                                        <option value="openai/gpt-4.1-nano-2025-04-14">OpenAI GPT-4.1 Nano</option>
+                                        <option value="anthropic/claude-3-5-haiku-20241022">Anthropic Claude 3.5 Haiku</option>
+                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview</option>
                                     </select>
                                 </div>
                                 <div class="form-group">

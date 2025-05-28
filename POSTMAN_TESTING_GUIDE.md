@@ -89,7 +89,7 @@ Content-Type: application/json
   "url": "https://example.com",
   "extraction_strategy": "LLMExtractionStrategy",
   "extraction_config": {
-    "provider": "gpt-4.1-nano-2025-04-14",
+    "provider": "google/gemini-2.5-flash-preview-05-20",
     "api_token": "your-api-key",
     "instruction": "Extract the main content and key information"
   },
@@ -102,10 +102,10 @@ Content-Type: application/json
 ```
 
 **Supported Provider Formats (When Implemented):**
+- Google: `"google/gemini-2.5-flash-preview-05-20"` (Default)
 - Custom models: `"gpt-4.1-nano-2025-04-14"` ✅ (Your current model)
-- OpenAI: `"openai/gpt-4o-mini"`
-- Anthropic: `"anthropic/claude-3-sonnet"`
-- Google: `"google/gemini-pro"`
+- OpenAI: `"openai/gpt-4.1-nano-2025-04-14"`
+- Anthropic: `"anthropic/claude-3-5-haiku-20241022"`
 
 **Note:** ✅ **AI extraction is now fully supported!** Use the second request body format above to enable intelligent content extraction with your preferred AI model.
 
@@ -141,7 +141,7 @@ Content-Type: application/json
   "force_recrawl": false,
   "extraction_strategy": "LLMExtractionStrategy",
   "extraction_config": {
-    "provider": "gpt-4.1-nano-2025-04-14",
+    "provider": "google/gemini-2.5-flash-preview-05-20",
     "api_token": "your-api-key",
     "instruction": "Extract the main content and key information from each page"
   },
