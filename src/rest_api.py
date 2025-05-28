@@ -4,9 +4,9 @@ REST API server for web crawling with Crawl4AI.
 This server provides REST API endpoints to crawl websites using Crawl4AI, automatically detecting
 the appropriate crawl method based on URL type (sitemap, txt file, or regular webpage).
 """
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
@@ -282,6 +282,173 @@ def extract_section_info(chunk: str) -> Dict[str, Any]:
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "Crawl4AI REST API"}
+
+@app.get("/playground")
+async def playground(request: Request):
+    """Simple web interface for testing the API and browsing data."""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Crawl4AI REST API Playground</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+            .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; color: white; margin-bottom: 40px; }
+            .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+            .header p { font-size: 1.1rem; opacity: 0.9; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+            .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+            .card h3 { color: #333; margin-bottom: 16px; font-size: 1.3rem; }
+            .endpoint { background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 8px 0; }
+            .method { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+            .get { background: #28a745; color: white; }
+            .post { background: #007bff; color: white; }
+            .endpoint-path { font-family: monospace; color: #495057; margin-left: 8px; }
+            .endpoint-desc { font-size: 0.9rem; color: #6c757d; margin-top: 4px; }
+            .info-section { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 16px; margin: 16px 0; border-radius: 4px; }
+            .warning-section { background: #fff3e0; border-left: 4px solid #ff9800; padding: 16px; margin: 16px 0; border-radius: 4px; }
+            .code { background: #f4f4f4; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.9rem; }
+            .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+            .status-healthy { background: #28a745; }
+            .status-pending { background: #ffc107; }
+            .button { background: #007bff; color: white; border: none; padding: 10px 16px; border-radius: 6px; 
+                     cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
+            .button:hover { background: #0056b3; }
+            .env-vars { font-size: 0.85rem; line-height: 1.6; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🕷️ Crawl4AI REST API Playground</h1>
+                <p>Interactive testing interface for the Crawl4AI FastAPI deployment</p>
+            </div>
+            
+            <div class="grid">
+                <!-- API Status -->
+                <div class="card">
+                    <h3><span class="status-indicator status-healthy"></span>API Status</h3>
+                    <p><strong>Base URL:</strong> <span class="code">""" + str(request.base_url) + """</span></p>
+                    <p><strong>Service:</strong> Crawl4AI REST API</p>
+                    <p><strong>Environment:</strong> Railway Production</p>
+                    
+                    <div class="info-section">
+                        <strong>🔑 Authentication Required:</strong><br>
+                        Bearer Token: <span class="code">secure-crawl4ai-bearer-token-2024</span>
+                    </div>
+                </div>
+                
+                <!-- Available Endpoints -->
+                <div class="card">
+                    <h3>📡 Available Endpoints</h3>
+                    
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/health</span>
+                        <div class="endpoint-desc">Check API health status</div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/crawl/single</span>
+                        <div class="endpoint-desc">Crawl a single webpage</div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/crawl/smart</span>
+                        <div class="endpoint-desc">Smart multi-page crawling</div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/query/rag</span>
+                        <div class="endpoint-desc">Query crawled content with RAG</div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/sources</span>
+                        <div class="endpoint-desc">List all crawled sources</div>
+                    </div>
+                    
+                    <div class="endpoint">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/check-freshness</span>
+                        <div class="endpoint-desc">Check URL freshness status</div>
+                    </div>
+                </div>
+                
+                <!-- Quick Test -->
+                <div class="card">
+                    <h3>🧪 Quick Test</h3>
+                    <p>Test the health endpoint:</p>
+                    <div class="code">
+curl -H "Authorization: Bearer secure-crawl4ai-bearer-token-2024" \\<br>
+&nbsp;&nbsp;&nbsp;&nbsp;""" + str(request.base_url) + """health
+                    </div>
+                    
+                    <p style="margin-top: 16px;">Test a simple crawl:</p>
+                    <div class="code">
+curl -X POST \\<br>
+&nbsp;&nbsp;-H "Authorization: Bearer secure-crawl4ai-bearer-token-2024" \\<br>
+&nbsp;&nbsp;-H "Content-Type: application/json" \\<br>
+&nbsp;&nbsp;-d '{"url": "https://example.com"}' \\<br>
+&nbsp;&nbsp;""" + str(request.base_url) + """crawl/single
+                    </div>
+                </div>
+                
+                <!-- Database Info -->
+                <div class="card">
+                    <h3>🗄️ Database Status</h3>
+                    <p><strong>Database:</strong> Supabase PostgreSQL</p>
+                    <p><strong>Features:</strong> Vector embeddings, RAG queries</p>
+                    <p><strong>Freshness Period:</strong> 30 days</p>
+                    
+                    <div class="warning-section">
+                        <strong>⚠️ Current Limitations:</strong><br>
+                        • LLM extraction not yet implemented<br>
+                        • Database browser not available<br>
+                        • Interactive testing limited
+                    </div>
+                </div>
+                
+                <!-- Environment -->
+                <div class="card">
+                    <h3>🔧 Environment Configuration</h3>
+                    <div class="env-vars">
+                        <strong>Production Settings:</strong><br>
+                        • PORT: 8000<br>
+                        • FRESHNESS_PERIOD_DAYS: 30<br>
+                        • Browser: Chromium (headless)<br>
+                        • Chunking: Smart markdown splitting<br>
+                        • Authentication: Bearer token required
+                    </div>
+                </div>
+                
+                <!-- Resources -->
+                <div class="card">
+                    <h3>📚 Resources</h3>
+                    <p><strong>Documentation:</strong></p>
+                    <p>• Check <span class="code">POSTMAN_TESTING_GUIDE.md</span> for detailed API docs</p>
+                    <p>• See <span class="code">API_CREDENTIALS.txt</span> for authentication details</p>
+                    
+                    <p style="margin-top: 12px;"><strong>Testing Tools:</strong></p>
+                    <p>• Use Postman for comprehensive testing</p>
+                    <p>• Try <span class="code">test_rest_api.py</span> for automated tests</p>
+                    <p>• Monitor logs: <span class="code">railway logs</span></p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 class CheckFreshnessRequest(BaseModel):
     url: str
