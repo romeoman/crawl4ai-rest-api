@@ -9,6 +9,7 @@ from supabase import create_client, Client
 from urllib.parse import urlparse
 import openai
 from datetime import datetime, timedelta
+import re
 
 # Load OpenAI API key for embeddings
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -27,6 +28,34 @@ def get_supabase_client() -> Client:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment variables")
     
     return create_client(url, key)
+
+def normalize_url(url: str) -> str:
+    """
+    Normalize a URL by adding https:// if no protocol is specified.
+    
+    Args:
+        url: The URL to normalize
+        
+    Returns:
+        Normalized URL with protocol
+        
+    Examples:
+        "google.com" -> "https://google.com"
+        "http://google.com" -> "http://google.com"
+        "https://google.com" -> "https://google.com"
+        "man.digital" -> "https://man.digital"
+    """
+    if not url:
+        raise ValueError("URL cannot be empty")
+    
+    url = url.strip()
+    
+    # If URL already has a protocol, return as is
+    if url.startswith(('http://', 'https://', 'file://', 'raw:')):
+        return url
+    
+    # Add https:// by default
+    return f"https://{url}"
 
 def create_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """

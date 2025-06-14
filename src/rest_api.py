@@ -38,7 +38,7 @@ from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from crawl4ai.chunking_strategy import RegexChunking, NlpSentenceChunking
 from utils import (
     get_supabase_client, add_documents_to_supabase, search_documents,
-    check_url_freshness, get_stale_urls, validate_api_key
+    check_url_freshness, get_stale_urls, validate_api_key, normalize_url
 )
 from production_middleware import (
     init_production_features, CRAWL_COUNT, QUERY_COUNT, 
@@ -1044,7 +1044,7 @@ async def check_url_freshness_endpoint(
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
-        url = freshness_request.url
+        url = normalize_url(freshness_request.url)
         freshness_days = freshness_request.freshness_days
         supabase_client = app_context.supabase_client
         
@@ -1085,7 +1085,7 @@ async def crawl_single_page(
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
-        url = request.url
+        url = normalize_url(request.url)
         force_recrawl = request.force_recrawl
         crawler = app_context.crawler
         supabase_client = app_context.supabase_client
@@ -1212,7 +1212,7 @@ async def smart_crawl_url(
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
-        url = request.url
+        url = normalize_url(request.url)
         max_depth = request.max_depth
         max_concurrent = request.max_concurrent
         chunk_size = request.chunk_size
