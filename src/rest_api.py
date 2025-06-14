@@ -86,6 +86,41 @@ class Crawl4AIContext:
 # Global context variable
 app_context: Optional[Crawl4AIContext] = None
 
+# In-memory log store for real-time logging
+import threading
+from collections import deque
+
+class LogStore:
+    def __init__(self, max_logs=1000):
+        self.logs = deque(maxlen=max_logs)
+        self.lock = threading.Lock()
+    
+    def add_log(self, level: str, message: str, endpoint: Optional[str] = None):
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": level,
+            "message": message,
+            "endpoint": endpoint
+        }
+        with self.lock:
+            self.logs.append(log_entry)
+    
+    def get_logs(self, limit: int = 100, since: Optional[str] = None) -> List[Dict[str, Any]]:
+        with self.lock:
+            logs_list = list(self.logs)
+        
+        if since:
+            since_time = datetime.fromisoformat(since.replace("Z", "+00:00"))
+            logs_list = [log for log in logs_list 
+                        if datetime.fromisoformat(log["timestamp"].replace("Z", "+00:00")) > since_time]
+        
+        # Sort by timestamp (newest first) and apply limit
+        logs_list.sort(key=lambda x: x["timestamp"], reverse=True)
+        return logs_list[:limit]
+
+# Global log store
+log_store = LogStore()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
@@ -102,14 +137,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Initialize the crawler
     crawler = AsyncWebCrawler(config=browser_config)
     await crawler.__aenter__()
+    log_store.add_log("INFO", "Crawl4AI crawler initialized successfully", None)
     
     # Initialize Supabase client
     supabase_client = get_supabase_client()
+    log_store.add_log("INFO", "Database connection established", None)
     
     app_context = Crawl4AIContext(
         crawler=crawler,
         supabase_client=supabase_client
     )
+    log_store.add_log("INFO", "Crawl4AI REST API server ready for requests", None)
     
     try:
         yield
@@ -527,8 +565,8 @@ async def playground(request: Request):
                     <h3>📋 System Logs</h3>
                     <div class="grid">
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                            <button class="btn btn-success" onclick="loadRealtimeLogs()">🔴 Start Real-time Logs</button>
-                            <button class="btn btn-warning" onclick="stopRealtimeLogs()">⏹️ Stop Real-time</button>
+                            <button class="btn btn-success" onclick="loadRealtimeLogs()">🟢 Start Live Monitoring</button>
+                            <button class="btn btn-warning" onclick="stopRealtimeLogs()">⏹️ Stop Monitoring</button>
                             <button class="btn btn-primary" onclick="loadHistoricalLogs()">📜 Load Historical Logs</button>
                             <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear Display</button>
                             <select id="log-level-filter" class="form-input" style="width: auto; margin-left: auto;">
@@ -559,7 +597,7 @@ async def playground(request: Request):
                         
                         <div id="logs-controls" style="margin-bottom: 15px;">
                             <div style="display: flex; align-items: center; gap: 15px;">
-                                <span id="logs-status" class="status-indicator status-idle">⚪ Idle</span>
+                                <span id="logs-status" class="status-indicator status-idle"><span style="color: #888;">⚪ Stopped</span></span>
                                 <span id="logs-count">0 logs displayed</span>
                                 <label style="display: flex; align-items: center; gap: 5px;">
                                     <input type="checkbox" id="auto-scroll" checked> Auto-scroll to bottom
@@ -1119,7 +1157,7 @@ async def playground(request: Request):
                 
                 const statusEl = document.getElementById('logs-status');
                 statusEl.className = 'status-indicator status-success';
-                statusEl.textContent = '🔴 Real-time Active';
+                statusEl.innerHTML = '<span style="color: #00ff00;">🟢 Live Monitoring</span>';
                 
                 // Clear existing logs
                 clearLogs();
@@ -1180,7 +1218,7 @@ async def playground(request: Request):
                 
                 const statusEl = document.getElementById('logs-status');
                 statusEl.className = 'status-indicator status-idle';
-                statusEl.textContent = '⚪ Idle';
+                statusEl.innerHTML = '<span style="color: #888;">⚪ Stopped</span>';
                 
                 appendLogMessage('⏹️ Real-time log monitoring stopped.', 'INFO');
             }
@@ -1464,6 +1502,8 @@ async def crawl_single_page(
             url_to_full_document=url_to_full_document
         )
         
+        log_store.add_log("INFO", f"Successfully stored {len(chunks)} chunks for {url}", "/crawl/single")
+        
         return CrawlSinglePageResponse(
             success=True,
             url=url,
@@ -1671,6 +1711,8 @@ async def perform_rag_query(
         source = request.source
         match_count = request.match_count
         
+        log_store.add_log("INFO", f"RAG query started: '{query[:100]}...' (source: {source or 'all'})", "/query/rag")
+        
         supabase_client = app_context.supabase_client
         
         # Prepare filter if source is provided and not empty
@@ -1791,6 +1833,7 @@ async def get_recent_crawls(
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
+        log_store.add_log("INFO", f"Recent crawls requested (limit: {limit})", "/recent-crawls")
         supabase_client = app_context.supabase_client
         
         # Query recent crawls grouped by URL to get unique pages
