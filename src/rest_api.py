@@ -952,9 +952,19 @@ async def playground(request: Request):
                     const response = await fetch(API_BASE + 'recent-crawls?limit=15', {
                         headers: { 'Authorization': 'Bearer ' + API_KEY }
                     });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const data = await response.json();
                     
-                    if (data.success && data.recent_crawls.length > 0) {
+                    // Check if the response has the expected structure
+                    if (!data || typeof data.success === 'undefined') {
+                        throw new Error('Invalid response format from server');
+                    }
+                    
+                    if (data.success && data.recent_crawls && Array.isArray(data.recent_crawls) && data.recent_crawls.length > 0) {
                         let html = '<h4>🕒 Recent Crawls (' + data.recent_crawls.length + ')</h4>';
                         html += '<table class="database-table">';
                         html += '<thead><tr><th>URL</th><th>Title</th><th>Source</th><th>Chunks</th><th>AI Extracted</th><th>Crawled</th><th>Actions</th></tr></thead>';
@@ -962,31 +972,36 @@ async def playground(request: Request):
                         
                         data.recent_crawls.forEach(crawl => {
                             const crawlDate = new Date(crawl.crawled_at).toLocaleString();
-                            const shortUrl = crawl.url.length > 50 ? crawl.url.substring(0, 47) + '...' : crawl.url;
-                            const shortTitle = crawl.title.length > 30 ? crawl.title.substring(0, 27) + '...' : crawl.title;
+                            const shortUrl = crawl.url && crawl.url.length > 50 ? crawl.url.substring(0, 47) + '...' : (crawl.url || 'Unknown URL');
+                            const shortTitle = crawl.title && crawl.title.length > 30 ? crawl.title.substring(0, 27) + '...' : (crawl.title || 'No title');
                             const aiIcon = crawl.ai_extracted ? '🤖' : '📄';
-                            const aiStatus = crawl.ai_extracted ? 'Yes (' + crawl.extraction_strategy + ')' : 'No';
+                            const aiStatus = crawl.ai_extracted ? 'Yes (' + (crawl.extraction_strategy || 'unknown') + ')' : 'No';
                             
                             html += `<tr>
-                                <td><a href="${crawl.url}" target="_blank" title="${crawl.url}">${shortUrl}</a></td>
-                                <td title="${crawl.title}">${shortTitle}</td>
-                                <td>${crawl.source}</td>
-                                <td>${crawl.chunk_count}</td>
+                                <td><a href="${crawl.url || '#'}" target="_blank" title="${crawl.url || 'Unknown URL'}">${shortUrl}</a></td>
+                                <td title="${crawl.title || 'No title'}">${shortTitle}</td>
+                                <td>${crawl.source || 'Unknown'}</td>
+                                <td>${crawl.chunk_count || 0}</td>
                                 <td>${aiIcon} ${aiStatus}</td>
                                 <td>${crawlDate}</td>
                                 <td>
-                                    <button class="btn btn-primary" onclick="querySource('${crawl.source}')" style="margin-right: 5px;">Query</button>
-                                    <button class="btn btn-success" onclick="recrawlUrl('${crawl.url}')">Re-crawl</button>
+                                    <button class="btn btn-primary" onclick="querySource('${crawl.source || ''}')" style="margin-right: 5px;">Query</button>
+                                    <button class="btn btn-success" onclick="recrawlUrl('${crawl.url || ''}')">Re-crawl</button>
                                 </td>
                             </tr>`;
                         });
                         
                         html += '</tbody></table>';
                         content.innerHTML = html;
-                    } else {
+                    } else if (data.success && (!data.recent_crawls || data.recent_crawls.length === 0)) {
                         content.innerHTML = '<p>No recent crawls found. Try crawling some content first.</p>';
+                    } else {
+                        // Handle API error response
+                        const errorMsg = data.error || 'Unknown error occurred';
+                        content.innerHTML = '<p class="alert alert-warning">Error loading recent crawls: ' + errorMsg + '</p>';
                     }
                 } catch (error) {
+                    console.error('Recent crawls error:', error);
                     content.innerHTML = '<p class="alert alert-warning">Error loading recent crawls: ' + error.message + '</p>';
                 }
             }
