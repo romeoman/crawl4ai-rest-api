@@ -18,7 +18,7 @@ from xml.etree import ElementTree
 from dotenv import load_dotenv
 from supabase import Client, create_client
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 import asyncio
 import json
@@ -2035,6 +2035,23 @@ async def get_logs(
             "error": str(e),
             "logs": [],
             "count": 0
+        }
+
+@app.get("/debug/logs")
+async def debug_logs(api_key: str = Depends(get_api_key)):
+    """Debug endpoint to see raw log store contents."""
+    try:
+        raw_logs = list(log_store.logs)
+        return {
+            "success": True,
+            "raw_log_count": len(raw_logs),
+            "raw_logs": raw_logs[:10],  # Show first 10 for debugging
+            "log_store_maxlen": log_store.logs.maxlen
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
         }
 
 if __name__ == "__main__":
