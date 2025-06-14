@@ -482,6 +482,53 @@ async def playground(request: Request):
             .log-level.INFO { color: #3498db; }
             .log-level.DEBUG { color: #9b59b6; }
             .log-message { color: #ecf0f1; }
+            
+            /* Tooltip styles */
+            .tooltip {
+                position: relative;
+                display: inline-block;
+                cursor: help;
+                color: #007bff;
+                margin-left: 5px;
+                font-weight: normal;
+            }
+            
+            .tooltip .tooltiptext {
+                visibility: hidden;
+                width: 320px;
+                background-color: #333;
+                color: #fff;
+                text-align: left;
+                border-radius: 6px;
+                padding: 10px 14px;
+                position: absolute;
+                z-index: 1000;
+                bottom: 125%;
+                left: 50%;
+                margin-left: -160px;
+                opacity: 0;
+                transition: opacity 0.3s;
+                font-size: 13px;
+                line-height: 1.4;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                font-weight: normal;
+            }
+            
+            .tooltip .tooltiptext::after {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: -5px;
+                border-width: 5px;
+                border-style: solid;
+                border-color: #333 transparent transparent transparent;
+            }
+            
+            .tooltip:hover .tooltiptext {
+                visibility: visible;
+                opacity: 1;
+            }
         </style>
     </head>
     <body>
@@ -736,12 +783,19 @@ async def playground(request: Request):
                     case 'crawl-single':
                         form.innerHTML = `
                             <div class="form-group">
-                                <label class="form-label">URL to Crawl</label>
+                                <label class="form-label">URL to Crawl
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">The webpage URL you want to crawl and extract content from. Can be any valid HTTP/HTTPS URL.</span>
+                                    </span>
+                                </label>
                                 <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">
                                     <input type="checkbox" id="force_recrawl"> Force Recrawl
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">If checked, will crawl the URL even if it was recently crawled. Otherwise, returns cached content if it's fresh (less than 30 days old).</span>
+                                    </span>
                                 </label>
                             </div>
                             <h4>🤖 AI Extraction (Optional)</h4>
@@ -780,20 +834,35 @@ async def playground(request: Request):
                     case 'crawl-smart':
                         form.innerHTML = `
                             <div class="form-group">
-                                <label class="form-label">URL to Crawl</label>
+                                <label class="form-label">URL to Crawl
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">URL to crawl. Can be a website, sitemap.xml, or text file. Smart crawl automatically detects the type and uses the best strategy.</span>
+                                    </span>
+                                </label>
                                 <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Max Depth</label>
+                                <label class="form-label">Max Depth
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">How many link levels deep to crawl. Depth 1 = just the main page, depth 3 = main page + 2 levels of internal links. Higher = more pages crawled.</span>
+                                    </span>
+                                </label>
                                 <input type="number" id="max_depth" class="form-input" value="3" min="1" max="10">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Max Concurrent</label>
+                                <label class="form-label">Max Concurrent
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Number of pages to crawl simultaneously. Higher = faster crawling but more server load. Recommended: 5-15 for most sites.</span>
+                                    </span>
+                                </label>
                                 <input type="number" id="max_concurrent" class="form-input" value="10" min="1" max="50">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">
                                     <input type="checkbox" id="force_recrawl"> Force Recrawl
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">If checked, will crawl pages even if they were recently crawled. Otherwise, skips fresh content (less than 30 days old).</span>
+                                    </span>
                                 </label>
                             </div>
                             <h4>🤖 AI Extraction (Optional)</h4>
@@ -832,15 +901,27 @@ async def playground(request: Request):
                     case 'query-rag':
                         form.innerHTML = `
                             <div class="form-group">
-                                <label class="form-label">Query</label>
+                                <label class="form-label">Query
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Ask questions about your crawled content using natural language. Examples: "What are the main features?", "How much does it cost?", "Contact information".</span>
+                                    </span>
+                                </label>
                                 <textarea id="query" class="form-input form-textarea" placeholder="What information are you looking for?" required></textarea>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Source Filter (optional)</label>
+                                <label class="form-label">Source Filter (optional)
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Limit search to specific domain. Leave empty to search all crawled content. Example: "example.com" will only search content from that site.</span>
+                                    </span>
+                                </label>
                                 <input type="text" id="source" class="form-input" placeholder="example.com">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Match Count</label>
+                                <label class="form-label">Match Count
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Maximum number of relevant content chunks to return. Higher numbers give more context but longer responses. Recommended: 3-10.</span>
+                                    </span>
+                                </label>
                                 <input type="number" id="match_count" class="form-input" value="5" min="1" max="20">
                             </div>
                         `;
@@ -851,11 +932,19 @@ async def playground(request: Request):
                     case 'check-freshness':
                         form.innerHTML = `
                             <div class="form-group">
-                                <label class="form-label">URL to Check</label>
+                                <label class="form-label">URL to Check
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Check if this URL has been crawled recently and is still considered "fresh" in the database.</span>
+                                    </span>
+                                </label>
                                 <input type="url" id="url" class="form-input" placeholder="https://example.com" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Freshness Days</label>
+                                <label class="form-label">Freshness Days
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">Content is considered "fresh" if crawled within this many days. Default is 30 days. Older content is considered stale and needs re-crawling.</span>
+                                    </span>
+                                </label>
                                 <input type="number" id="freshness_days" class="form-input" value="30" min="1">
                             </div>
                         `;
