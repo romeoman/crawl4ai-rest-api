@@ -1928,75 +1928,35 @@ async def get_logs(
     Supports filtering by time range, log level, endpoint, and timestamp.
     """
     try:
-        # Get current time and calculate time range
+        # Get logs from the real log store
+        all_logs = log_store.get_logs(limit=2000, since=since)
+        
+        # Calculate time range for filtering  
         now = datetime.utcnow()
         start_time = now - timedelta(minutes=minutes)
         
-        # Create more dynamic sample logs with recent timestamp for clay.com crawl
-        sample_logs = [
-            {
-                "timestamp": (now - timedelta(minutes=2)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "Single page crawl completed for https://clay.com",
-                "endpoint": "/crawl/single"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=3)).isoformat() + "Z",
-                "level": "INFO", 
-                "message": "Successfully stored 8 chunks for https://clay.com",
-                "endpoint": "/crawl/single"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=4)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "Single page crawl started for https://clay.com",
-                "endpoint": "/crawl/single"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=8)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "Health check endpoint accessed",
-                "endpoint": "/health"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=12)).isoformat() + "Z",
-                "level": "INFO", 
-                "message": "Single page crawl started for https://man.digital",
-                "endpoint": "/crawl/single"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=15)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "RAG query processed: 'What is the main content?'",
-                "endpoint": "/query/rag"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=20)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "Recent crawls data fetched successfully",
-                "endpoint": "/recent-crawls"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=25)).isoformat() + "Z",
-                "level": "WARNING",
-                "message": "URL freshness check for stale URL: https://example.com",
-                "endpoint": "/check-freshness"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=30)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "API server started successfully on 0.0.0.0:8000",
-                "endpoint": None
+        # If no real logs exist, return empty result
+        if not all_logs:
+            return {
+                "success": True,
+                "logs": [],
+                "count": 0
             }
-        ]
         
         # Filter logs based on parameters
         filtered_logs = []
-        for log in sample_logs:
-            # Filter by time range
-            log_time = datetime.fromisoformat(log["timestamp"].replace("Z", "+00:00"))
-            if log_time < start_time:
-                continue
+        for log in all_logs:
+            # Filter by time range - handle timezone comparison
+            try:
+                log_time = datetime.fromisoformat(log["timestamp"].replace("Z", "+00:00"))
+                # Make start_time timezone-aware
+                from datetime import timezone
+                start_time_aware = start_time.replace(tzinfo=timezone.utc)
+                if log_time < start_time_aware:
+                    continue
+            except Exception:
+                # If timezone parsing fails, include the log
+                pass
                 
             # Filter by log level
             if level and level != "all":
