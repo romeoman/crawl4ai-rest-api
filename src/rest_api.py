@@ -133,7 +133,7 @@ limiter = production_config["limiter"]
 
 # Pydantic models for request/response
 class ExtractionConfig(BaseModel):
-    provider: str = "google/gemini-2.5-flash-preview-05-20"  # Default to Google Gemini
+    provider: str = "gpt-4.1-nano-2025-04-14"  # Default to custom model
     api_token: Optional[str] = None  # Will use environment variable if not provided
     instruction: str = "Extract the main content and key information"
     extra_args: Optional[Dict[str, Any]] = {}
@@ -625,9 +625,7 @@ async def playground(request: Request):
                                 <div class="form-group">
                                     <label class="form-label">AI Provider/Model</label>
                                     <select id="ai_provider" class="form-input">
-                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview (Default)</option>
-                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Custom Model)</option>
-                                        <option value="openai/gpt-4.1-nano-2025-04-14">OpenAI GPT-4.1 Nano</option>
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Default Custom Model)</option>
                                         <option value="anthropic/claude-3-5-haiku-20241022">Anthropic Claude 3.5 Haiku</option>
                                         <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview</option>
                                     </select>
@@ -679,9 +677,7 @@ async def playground(request: Request):
                                 <div class="form-group">
                                     <label class="form-label">AI Provider/Model</label>
                                     <select id="ai_provider" class="form-input">
-                                        <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview (Default)</option>
-                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Your Custom Model)</option>
-                                        <option value="openai/gpt-4.1-nano-2025-04-14">OpenAI GPT-4.1 Nano</option>
+                                        <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14 (Default Custom Model)</option>
                                         <option value="anthropic/claude-3-5-haiku-20241022">Anthropic Claude 3.5 Haiku</option>
                                         <option value="google/gemini-2.5-flash-preview-05-20">Google Gemini 2.5 Flash Preview</option>
                                     </select>
