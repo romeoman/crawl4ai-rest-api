@@ -597,7 +597,7 @@ async def playground(request: Request):
                         
                         <div id="logs-controls" style="margin-bottom: 15px;">
                             <div style="display: flex; align-items: center; gap: 15px;">
-                                <span id="logs-status" class="status-indicator status-idle"><span style="color: #888;">⚪ Stopped</span></span>
+                                <span id="logs-status" class="status-indicator status-idle">⚪ Stopped</span>
                                 <span id="logs-count">0 logs displayed</span>
                                 <label style="display: flex; align-items: center; gap: 5px;">
                                     <input type="checkbox" id="auto-scroll" checked> Auto-scroll to bottom
@@ -1157,11 +1157,10 @@ async def playground(request: Request):
                 
                 const statusEl = document.getElementById('logs-status');
                 statusEl.className = 'status-indicator status-success';
-                statusEl.innerHTML = '<span style="color: #00ff00;">🟢 Live Monitoring</span>';
+                statusEl.innerHTML = '🟢 Live';
                 
-                // Clear existing logs
-                clearLogs();
-                appendLogMessage('🚀 Starting real-time log monitoring...', 'INFO');
+                // Reset timestamp for fresh start
+                lastLogTimestamp = null;
                 
                 // Start polling for new logs every 2 seconds
                 realtimeLogsInterval = setInterval(fetchRealtimeLogs, 2000);
@@ -1183,9 +1182,10 @@ async def playground(request: Request):
                     if (endpointFilter) {
                         url += '&endpoint=' + encodeURIComponent(endpointFilter);
                     }
-                    if (lastLogTimestamp) {
-                        url += '&since=' + encodeURIComponent(lastLogTimestamp);
-                    }
+                    // Don't use since parameter for now - it's causing issues
+                    // if (lastLogTimestamp) {
+                    //     url += '&since=' + encodeURIComponent(lastLogTimestamp);
+                    // }
                     
                     const response = await fetch(url, {
                         headers: { 'Authorization': 'Bearer ' + API_KEY }
@@ -1198,11 +1198,32 @@ async def playground(request: Request):
                     const data = await response.json();
                     
                     if (data.success && data.logs && data.logs.length > 0) {
-                        data.logs.forEach(log => {
-                            appendLogEntry(log);
-                            lastLogTimestamp = log.timestamp;
-                        });
+                        // Only append if this is the first load or we have new logs
+                        if (!lastLogTimestamp) {
+                            // First load - clear and show all logs
+                            clearLogs();
+                            appendLogMessage('🚀 Live monitoring started - showing recent logs...', 'INFO');
+                            data.logs.forEach(log => {
+                                appendLogEntry(log);
+                            });
+                            if (data.logs.length > 0) {
+                                lastLogTimestamp = data.logs[0].timestamp;
+                            }
+                        } else {
+                            // Check for newer logs
+                            const newLogs = data.logs.filter(log => 
+                                new Date(log.timestamp) > new Date(lastLogTimestamp)
+                            );
+                            newLogs.forEach(log => {
+                                appendLogEntry(log);
+                                lastLogTimestamp = log.timestamp;
+                            });
+                        }
                         updateLogCount();
+                    } else if (!lastLogTimestamp) {
+                        // First load with no logs
+                        clearLogs();
+                        appendLogMessage('📜 No recent logs found. Monitoring for new activity...', 'INFO');
                     }
                 } catch (error) {
                     console.error('Real-time logs error:', error);
@@ -1218,7 +1239,7 @@ async def playground(request: Request):
                 
                 const statusEl = document.getElementById('logs-status');
                 statusEl.className = 'status-indicator status-idle';
-                statusEl.innerHTML = '<span style="color: #888;">⚪ Stopped</span>';
+                statusEl.innerHTML = '⚪ Stopped';
                 
                 appendLogMessage('⏹️ Real-time log monitoring stopped.', 'INFO');
             }
