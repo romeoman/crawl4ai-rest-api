@@ -26,6 +26,7 @@ import os
 import re
 import uvicorn
 import sys
+import logging
 
 # Add the src directory to Python path for imports
 current_dir = Path(__file__).resolve().parent
@@ -38,6 +39,10 @@ from crawl4ai.chunking_strategy import RegexChunking, NlpSentenceChunking
 from utils import (
     get_supabase_client, add_documents_to_supabase, search_documents,
     check_url_freshness, get_stale_urls, validate_api_key
+)
+from production_middleware import (
+    init_production_features, CRAWL_COUNT, QUERY_COUNT, 
+    ACTIVE_CRAWLS, ERROR_COUNT
 )
 
 # Load environment variables from the project root .env file
@@ -121,34 +126,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # React development server
-        "http://localhost:8080",  # Vue development server
-        "http://localhost:5173",  # Vite development server
-        "https://*.railway.app",  # Railway deployment domains
-        "https://*.vercel.app",   # Vercel deployment domains
-        "https://*.netlify.app",  # Netlify deployment domains
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Accept",
-        "Accept-Language", 
-        "Content-Language",
-        "Content-Type",
-        "Authorization",
-        "X-API-Key",
-        "X-Requested-With",
-        "Origin",
-        "Referer",
-        "User-Agent"
-    ],
-    expose_headers=["X-Total-Count", "X-Page-Count"],
-    max_age=86400,  # Cache preflight requests for 24 hours
-)
+# Initialize production features (logging, monitoring, rate limiting, etc.)
+production_config = init_production_features(app)
+logger = production_config["logger"]
+limiter = production_config["limiter"]
 
 # Pydantic models for request/response
 class ExtractionConfig(BaseModel):
@@ -1048,8 +1029,10 @@ class CheckFreshnessResponse(BaseModel):
     error: Optional[str] = None
 
 @app.post("/check-freshness", response_model=CheckFreshnessResponse)
+@limiter.limit("100/hour")
 async def check_url_freshness_endpoint(
-    request: CheckFreshnessRequest,
+    request: Request,
+    freshness_request: CheckFreshnessRequest,
     api_key: str = Depends(get_api_key)
 ) -> CheckFreshnessResponse:
     """
@@ -1061,8 +1044,8 @@ async def check_url_freshness_endpoint(
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
-        url = request.url
-        freshness_days = request.freshness_days
+        url = freshness_request.url
+        freshness_days = freshness_request.freshness_days
         supabase_client = app_context.supabase_client
         
         is_fresh, last_crawled = check_url_freshness(supabase_client, url, freshness_days)

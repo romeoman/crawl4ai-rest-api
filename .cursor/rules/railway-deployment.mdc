@@ -3,3 +3,120 @@ description:
 globs:
 alwaysApply: false
 ---
+# Railway Deployment Best Practices
+
+## **FastAPI Railway Configuration**
+- **Use proper host and port binding**:
+```python
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)
+```
+
+- **Configure Procfile for Railway**:
+```
+web: python start_rest_api.py
+```
+
+## **Environment Variable Management**
+- **Separate development and production configs**:
+  - Local: Use [.env](mdc:.env) file with `load_dotenv()`
+  - Railway: Set in Railway dashboard or `railway.json`
+
+- **Force override pattern for Railway**:
+```python
+# Force override of existing environment variables
+load_dotenv(dotenv_path, override=True)
+```
+
+## **CORS Configuration for Production**
+- **Allow Railway domains**:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://*.railway.app",
+        "https://*.vercel.app",
+        "https://*.netlify.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
+```
+
+## **Railway Deployment Commands**
+- **Deploy with detached mode**:
+```bash
+railway up --detach
+```
+
+- **Monitor deployment**:
+```bash
+railway logs  # View recent logs
+railway logs --follow  # Live monitoring
+```
+
+## **Health Check Patterns**
+- **Always implement health endpoint**:
+```python
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "Crawl4AI REST API"}
+```
+
+## **Authentication in Production**
+- **Use Bearer token authentication**:
+```python
+security = HTTPBearer(auto_error=False)
+
+def get_api_key(credentials: HTTPAuthorizationCredentials = Security(security)):
+    if not validate_api_key(credentials.credentials):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return credentials.credentials
+```
+
+## **Debugging Production Issues**
+- **Add temporary debug logging**:
+```python
+print(f"🔧 DEBUG: {operation_description}")
+```
+
+- **Remove debug logs before final deployment**:
+```python
+# Clean production code - no debug prints
+```
+
+## **Railway-Specific Configurations**
+- **Railway auto-detects Python apps**
+- **Uses `railway.json` for advanced configuration**
+- **Automatically sets `PORT` environment variable**
+- **Supports both Dockerfile and buildpack deployments**
+
+## **Deployment Verification**
+- **Test health endpoint immediately**:
+```bash
+curl -H "Authorization: Bearer <token>" https://app.railway.app/health
+```
+
+- **Monitor logs for startup issues**:
+```bash
+railway logs
+```
+
+- **Test core functionality**:
+```python
+# Run comprehensive test suite after deployment
+python test_ai_extraction.py
+```
+
+## **Common Issues and Solutions**
+- **502 Bad Gateway**: App crashed during startup - check logs
+- **422 Unprocessable Entity**: Request validation error - check request format
+- **401 Unauthorized**: Invalid API key - verify environment variables
+
+## **File References**
+- Deployment script: [start_rest_api.py](mdc:start_rest_api.py)
+- Process configuration: [Procfile](mdc:Procfile)
+- Railway config: [railway.json](mdc:railway.json)
+- Environment template: [.env.example](mdc:.env.example)

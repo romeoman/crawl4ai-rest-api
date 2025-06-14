@@ -3,3 +3,236 @@ description:
 globs:
 alwaysApply: false
 ---
+# Testing and Debugging Patterns
+
+## **API Testing Structure**
+- **Comprehensive test functions**:
+```python
+def test_health():
+    """Test the health endpoint."""
+    response = requests.get(
+        f"{BASE_URL}/health",
+        headers={"Authorization": f"Bearer {API_KEY}"}
+    )
+    assert response.status_code == 200
+    return response.json()
+
+def test_ai_extraction_single():
+    """Test single page crawl with AI extraction."""
+    response = requests.post(
+        f"{BASE_URL}/crawl/single",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "url": "https://httpbin.org/html",
+            "extraction_strategy": "LLMExtractionStrategy",
+            "extraction_config": {
+                "provider": "gpt-4.1-nano-2025-04-14",
+                "instruction": "Extract the main HTML elements"
+            },
+            "force_recrawl": True
+        }
+    )
+    return response
+```
+
+## **Debug Logging Patterns**
+- **Temporary debug logging for complex operations**:
+```python
+def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
+    print(f"🔧 DEBUG: Creating extraction strategy: {extraction_strategy}")
+    print(f"🔧 DEBUG: Provider={provider}, Has API token={api_token is not None}")
+    # Implementation...
+    print(f"🔧 DEBUG: LLMConfig created successfully")
+```
+
+- **Remove debug logs before production**:
+```python
+# Clean production code - no debug prints
+def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
+    # Implementation without debug prints
+```
+
+## **Error Testing Patterns**
+- **Test error conditions**:
+```python
+def test_invalid_api_key():
+    """Test with invalid API key."""
+    response = requests.get(
+        f"{BASE_URL}/health",
+        headers={"Authorization": "Bearer invalid-key"}
+    )
+    assert response.status_code == 401
+
+def test_missing_extraction_config():
+    """Test AI extraction without config."""
+    response = requests.post(
+        f"{BASE_URL}/crawl/single",
+        json={
+            "url": "https://example.com",
+            "extraction_strategy": "LLMExtractionStrategy"
+            # Missing extraction_config
+        }
+    )
+    assert response.status_code == 422
+```
+
+## **Live Testing with Logs**
+- **Monitor deployment logs during testing**:
+```bash
+railway logs --follow &
+python test_ai_extraction.py
+railway logs --tail 50
+```
+
+- **Test specific functionality and check logs**:
+```python
+# Test and immediately check what was logged
+response = test_ai_extraction_single()
+# Check Railway logs for debug output
+```
+
+## **Provider Configuration Testing**
+- **Test multiple AI providers**:
+```python
+def test_multiple_providers():
+    """Test different AI provider configurations."""
+    providers = [
+        "gpt-4.1-nano-2025-04-14",
+        "openai/gpt-4o-mini",
+        "anthropic/claude-3-sonnet"
+    ]
+    
+    for provider in providers:
+        response = requests.post(url, json={
+            "url": "https://httpbin.org/html",
+            "extraction_strategy": "LLMExtractionStrategy",
+            "extraction_config": {
+                "provider": provider,
+                "instruction": "Extract content"
+            }
+        })
+        print(f"Provider {provider}: {response.status_code}")
+```
+
+## **Local vs Production Testing**
+- **Test locally first**:
+```python
+def test_local_config():
+    """Test the exact configuration locally before deployment."""
+    from crawl4ai import LLMConfig
+    from crawl4ai.extraction_strategy import LLMExtractionStrategy
+    
+    llm_config = LLMConfig(
+        provider="openai/gpt-4.1-nano-2025-04-14",
+        api_token=os.getenv("OPENAI_API_KEY")
+    )
+    
+    strategy = LLMExtractionStrategy(
+        llm_config=llm_config,
+        instruction="Test instruction"
+    )
+    
+    print("✅ Local configuration works")
+```
+
+## **Deployment Verification**
+- **Post-deployment testing checklist**:
+```python
+def verify_deployment():
+    """Run after each deployment to verify functionality."""
+    tests = [
+        test_health,
+        test_ai_extraction_single,
+        test_smart_crawl,
+        test_rag_query
+    ]
+    
+    for test in tests:
+        try:
+            result = test()
+            print(f"✅ {test.__name__}: PASS")
+        except Exception as e:
+            print(f"❌ {test.__name__}: FAIL - {e}")
+```
+
+## **Error Response Analysis**
+- **Common error codes and meanings**:
+```python
+STATUS_CODE_MEANINGS = {
+    401: "Invalid or missing API key",
+    422: "Request validation error - check JSON format",
+    500: "Server error - check logs",
+    502: "Bad Gateway - app crashed during startup"
+}
+
+def analyze_response(response):
+    """Analyze response and provide debugging info."""
+    if response.status_code != 200:
+        meaning = STATUS_CODE_MEANINGS.get(response.status_code, "Unknown error")
+        print(f"Error {response.status_code}: {meaning}")
+        try:
+            print(f"Response: {response.json()}")
+        except:
+            print(f"Raw response: {response.text}")
+```
+
+## **Configuration Validation Testing**
+- **Test configuration edge cases**:
+```python
+def test_config_edge_cases():
+    """Test various configuration scenarios."""
+    test_cases = [
+        # Custom model without prefix
+        {"provider": "gpt-4.1-nano-2025-04-14"},
+        # Prefixed format
+        {"provider": "openai/gpt-4o-mini"},
+        # With API token
+        {"provider": "anthropic/claude-3-sonnet", "api_token": "sk-test"},
+        # With extra args
+        {"provider": "openai/gpt-4", "extra_args": {"temperature": 0.1}}
+    ]
+    
+    for config in test_cases:
+        # Test each configuration
+        pass
+```
+
+## **Debugging Production Issues**
+- **Systematic debugging approach**:
+```python
+def debug_production_issue():
+    """Systematic approach to debug production issues."""
+    # 1. Check health endpoint
+    health = test_health()
+    print(f"Health: {health}")
+    
+    # 2. Test simple operation
+    simple_crawl = test_simple_crawl()
+    print(f"Simple crawl: {simple_crawl.status_code}")
+    
+    # 3. Test AI extraction
+    ai_crawl = test_ai_extraction_single()
+    print(f"AI crawl: {ai_crawl.status_code}")
+    
+    # 4. Check logs
+    print("Check Railway logs: railway logs")
+```
+
+## **Test Data Management**
+- **Use reliable test URLs**:
+```python
+TEST_URLS = {
+    "simple_html": "https://httpbin.org/html",
+    "json_response": "https://httpbin.org/json",
+    "large_content": "https://example.com",
+    "sitemap": "https://example.com/sitemap.xml"
+}
+```
+
+## **File References**
+- Test suite: [test_ai_extraction.py](mdc:test_ai_extraction.py)
+- Main API: [rest_api.py](mdc:src/rest_api.py)
+- Local testing guide: [LOCAL_TESTING_GUIDE.md](mcp:LOCAL_TESTING_GUIDE.md)

@@ -13,7 +13,11 @@ dependencies = [
     "uvicorn==0.32.1",
     "fastapi==0.115.6",
     "beautifulsoup4",
-    "requests"
+    "requests",
+    "slowapi==0.1.9",
+    "python-json-logger==2.0.7",
+    "sentry-sdk[fastapi]==2.18.0",
+    "prometheus-client==0.21.0"
 ]
 
 [build-system]

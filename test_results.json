@@ -1,0 +1,281 @@
+{
+  "summary": {
+    "total": 12,
+    "passed": 11,
+    "failed": 1,
+    "timestamp": "2025-06-14T19:40:10.968977"
+  },
+  "results": [
+    {
+      "name": "Health Check",
+      "status": "PASSED",
+      "duration": 0.12738418579101562,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "status": "healthy",
+          "service": "Crawl4AI REST API"
+        }
+      },
+      "timestamp": "2025-06-14T19:40:02.791512"
+    },
+    {
+      "name": "Authentication Required",
+      "status": "PASSED",
+      "duration": 0.11128973960876465,
+      "result": {
+        "success": true,
+        "status_code": 401
+      },
+      "timestamp": "2025-06-14T19:40:02.902821"
+    },
+    {
+      "name": "Invalid Authentication",
+      "status": "PASSED",
+      "duration": 0.11436295509338379,
+      "result": {
+        "success": true,
+        "status_code": 401
+      },
+      "timestamp": "2025-06-14T19:40:03.017207"
+    },
+    {
+      "name": "Sources Endpoint",
+      "status": "PASSED",
+      "duration": 0.6114146709442139,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "success": true,
+          "sources": [
+            "ai.pydantic.dev",
+            "app.subframe.com",
+            "chat.vitest.dev",
+            "cn.vitest.dev",
+            "discord.com",
+            "docs.pmnd.rs",
+            "docs.pydantic.dev",
+            "docs.subframe.com",
+            "help.subframe.com",
+            "logfire.pydantic.dev",
+            "main.vitest.dev",
+            "pmnd.rs",
+            "pydantic.dev",
+            "v0.vitest.dev",
+            "v1.vitest.dev",
+            "v2.vitest.dev",
+            "valtio.pmnd.rs",
+            "vitest.dev",
+            "www.subframe.com",
+            "zustand.docs.pmnd.rs"
+          ],
+          "count": 20,
+          "error": null
+        }
+      },
+      "timestamp": "2025-06-14T19:40:03.628653"
+    },
+    {
+      "name": "URL Freshness Check",
+      "status": "PASSED",
+      "duration": 0.23434925079345703,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "success": true,
+          "url": "https://example.com",
+          "is_fresh": false,
+          "last_crawled": null,
+          "days_since_crawl": null,
+          "error": null
+        }
+      },
+      "timestamp": "2025-06-14T19:40:03.863036"
+    },
+    {
+      "name": "Single Page Crawl",
+      "status": "PASSED",
+      "duration": 1.8320529460906982,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "success": true,
+          "url": "https://httpbin.org/html",
+          "content_length": 3598,
+          "chunks_stored": 1,
+          "was_fresh": false,
+          "last_crawled": null,
+          "error": null
+        }
+      },
+      "timestamp": "2025-06-14T19:40:05.695124"
+    },
+    {
+      "name": "Smart Crawl",
+      "status": "PASSED",
+      "duration": 4.172849893569946,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "success": true,
+          "url": "https://httpbin.org/",
+          "crawl_type": "webpage",
+          "pages_crawled": 2,
+          "chunks_stored": 2,
+          "skipped_fresh_urls": 0,
+          "error": null
+        }
+      },
+      "timestamp": "2025-06-14T19:40:09.868050"
+    },
+    {
+      "name": "RAG Query",
+      "status": "PASSED",
+      "duration": 0.6042249202728271,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "data": {
+          "success": true,
+          "query": "What is the main content?",
+          "source_filter": null,
+          "results": [
+            {
+              "url": "https://discord.com/terms",
+              "content": "This section details user account security, ownership, and content rights within Discord's Terms of Service, including account access issues, licensing of user content, and permissions granted to Discord.\n---\nIf your account is compromised or you no longer have access to your email account or phone number, we may not be able to restore your access to your account or the servers you\u2019ve created. \nYou agree not to license, sell, lend, or transfer your account, Discord username, vanity URL, or other unique identifier without our prior written approval. We also reserve the right to delete, change, or reclaim your username, URL, or other identifier.\n## Content in Discord\u2019s services\n#### Your Content\nWhen we say \u201cyour content\u201d in these terms, we mean all the things you add (upload, post, share, stream, etc.) to our services. This includes text, links, GIFs, emoji, photos, videos, documents, or other media. If we come up with another way for you to add content to the services, it includes that too.\nYou don\u2019t have any obligation to add content to the services. If you choose to add content to the services, you are responsible for ensuring that you have the right to do so, that you have the right to grant the licenses in this section of these terms, and that your content is lawful. We take no responsibility for any of your content, and we are not responsible for others\u2019 use of your content.\nOur services allow users to add content in a number of different ways, including via direct messages, group direct messages, and in small and large servers. Some of these servers may be larger spaces, and if you share content within them, that content may be more likely to be accessed by a lot of people. For example, some servers are available in the Server Discovery section of the app and do not require an invite link to join. Other server owners may publish their server invite link on public websites. Anyone can access these spaces. You should be aware that these permissions are set by server owners or admins, and they may change over time. Please understand where you are posting on Discord, familiarize yourself with the relevant server permissions when joining and posting in a certain space, and choose the right space, features, and settings for you and your content. \nYour content is yours, but you give us a license to it when you use Discord. Your content may be protected by certain intellectual property rights. We don\u2019t own those. But by using our services, you grant us a license\u2014which is a form of permission\u2014to do the following with your content, in accordance with applicable legal requirements, in connection with operating, developing, and improving our services:\n  * Use, copy, store, distribute, and communicate your content in manners consistent with your use of the services. (For example, so we can store and display your content.)\n  * Publish, publicly perform, or publicly display your content if you\u2019ve chosen to make it visible to others. (For example, so we can display your messages if you post them in certain servers or recommend that content to others.)\n  * Monitor, modify, translate, and reformat your content. (For example, so we can resize an image you post to fit on a mobile device.)\n  * Sublicense your content, to allow our services to work as intended. (For example, so we can store your content with our cloud service providers.)",
+              "metadata": {
+                "url": "https://discord.com/terms",
+                "source": "discord.com",
+                "headers": "",
+                "char_count": 3130,
+                "chunk_size": 3383,
+                "crawl_time": "_handle_message",
+                "crawl_type": "webpage",
+                "word_count": 82,
+                "chunk_index": 0,
+                "contextual_embedding": true
+              },
+              "similarity": 0.346816410219182
+            },
+            {
+              "url": "https://www.subframe.com/blog/hide-your-scrollbars-but-still-scroll-with-tailwind-css",
+              "content": "This chunk contains the copyright notice, licensing information, and navigation links for the Subframe Help Center homepage.\n---\nCopyright (c) 2023, Intercom, Inc. (legal@intercom.io) with Reserved Font Name \"Inter\". This Font Software is licensed under the SIL Open Font License, Version 1.1.Copyright (c) 2023, Intercom, Inc. (legal@intercom.io) with Reserved Font Name \"Inter\". This Font Software is licensed under the SIL Open Font License, Version 1.1.[Skip to main content](https://help.subframe.com/en/#main-content)\n[![Subframe Help Center](https://downloads.intercomcdn.com/i/o/555915/1fca22195f433c1eae160ab1/79ea5d14f73671da2a0758afef651189.png)](https://help.subframe.com/en/)\nEnglish\nEnglish\nEnglish\nEnglish\n# Get started with Subframe\nSearch for articles...\n[![](https://intercom.help/subframe/assets/svg/icon:sft-cursor-arrow-rays/111)Designing in SubframeDesign your product visually in the editor![Irvin Zhan avatar](https://static.intercomassets.com/avatars/7351200/square_128/IEKVXE3V_400x400_%282%29-1714784853.jpg)![Filip Skrzesinski avatar](https://static.intercomassets.com/avatars/7442418/square_128/DALL%C2%B7E_2022-10-24_10.19.41_-_neutral_sweater-1718156424.jpg)By Irvin and 1 other2 authors12 articles](http://help.subframe.com/en/collections/9444954-designing-in-subframe)[![](https://intercom.help/subframe/assets/svg/icon:sft-window/111)Developing with SubframeBring your UI to life with production-ready code![Irvin Zhan avatar](https://static.intercomassets.com/avatars/7351200/square_128/IEKVXE3V_400x400_%282%29-1714784853.jpg)![Filip Skrzesinski avatar](https://static.intercomassets.com/avatars/7442418/square_128/DALL%C2%B7E_2022-10-24_10.19.41_-_neutral_sweater-1718156424.jpg)By Irvin and 1 other2 authors8 articles](http://help.subframe.com/en/collections/9444971-developing-with-subframe)[![](https://intercom.help/subframe/assets/svg/icon:bizz-fin-building-office-2/111)Admin & billingManage your Subframe account, team, and plan![Irvin Zhan avatar](https://static.intercomassets.com/avatars/7351200/square_128/IEKVXE3V_400x400_%282%29-1714784853.jpg)By Irvin1 author2 articles](http://help.subframe.com/en/collections/9513240-admin-billing)\n[![Subframe Help Center](https://downloads.intercomcdn.com/i/o/529978/001a9320b8df3077ea101af3/8ef60f6348ab141b97bd0160056f8726.png)](https://help.subframe.com/en/)\nSubframe \u2013 The best way to build UI, fast.\n  * [![](https://intercom.help/subframe/assets/svg/icon:social-twitter-x/111)](https://www.twitter.com/SubframeApp)\n  * [![](https://intercom.help/subframe/assets/svg/icon:social-linkedin/111)](https://www.linkedin.com/company/subframeapp)\n  * [![](https://intercom.help/subframe/assets/svg/icon:social-github/111)](https://github.com/SubframeApp)",
+              "metadata": {
+                "url": "https://www.subframe.com/blog/hide-your-scrollbars-but-still-scroll-with-tailwind-css",
+                "source": "www.subframe.com",
+                "headers": "",
+                "char_count": 1356,
+                "chunk_size": 2740,
+                "crawl_time": "_handle_message",
+                "crawl_type": "webpage",
+                "word_count": 40,
+                "chunk_index": 1,
+                "contextual_embedding": true
+              },
+              "similarity": 0.335649986785652
+            },
+            {
+              "url": "https://pydantic.dev/articles/logfire-announcement",
+              "content": "This chunk appears within the announcement section of Pydantic's blog post about the Logfire platform's launch and Series A funding, providing related content, exploration links, and footer navigation.\n---\nIf you think what we're working on sounds interesting, please get in touch.\n## Related content\n[View all articles](https://pydantic.dev/articles)\n[/PydanticThe Eval has landed \ud83e\udd85![Samuel Colvin](https://pydantic.dev/cdn-cgi/image/width=64,quality=75,format=auto/https://avatars.githubusercontent.com/u/4039449)Samuel Colvin2025/04/02](https://pydantic.dev/articles/q1-2025-summary)[/LogfirePydantic Logfire EU Data Region Announcement![Samuel Colvin](https://pydantic.dev/cdn-cgi/image/width=64,quality=75,format=auto/https://avatars.githubusercontent.com/u/4039449)Samuel Colvin2025/03/26](https://pydantic.dev/articles/eu-region-launch)\n### Explore Logfire\n[Get startedGet started](https://logfire.pydantic.dev)\n[Explore our open source packages![Product shot](https://pydantic.dev/cdn-cgi/image/width=750,quality=75,format=auto/https://pydantic.dev/assets/footer/cta.svg)](https://github.com/pydantic)\nFooter(\n['/logfire'](https://pydantic.dev/logfire)['/pricing'](https://pydantic.dev/pricing)['/articles'](https://pydantic.dev/articles)['/about'](https://pydantic.dev/about)['/opensource'](https://pydantic.dev/opensource)['/contact'](https://pydantic.dev/contact)['/privacy'](https://pydantic.dev/legal/privacy-policy)['/terms'](https://pydantic.dev/legal/terms-of-service)['/cookies'](https://pydantic.dev/legal/privacy-policy#cookies-and-tracking-technologies)\nfoo=[\n['/logfire',](https://pydantic.dev/logfire)['/pricing',](https://pydantic.dev/pricing)['/articles'](https://pydantic.dev/articles)\n],\nbar=[\n['/about',](https://pydantic.dev/about)['/opensource',](https://pydantic.dev/opensource)['/contact'](https://pydantic.dev/contact)\n],\nspam=[\n['/privacy',](https://pydantic.dev/legal/privacy-policy)['/terms',](https://pydantic.dev/legal/terms-of-service)['/cookies'](https://pydantic.dev/legal/privacy-policy#cookies-and-tracking-technologies)\n],\n)\n[](https://pydantic.dev/)",
+              "metadata": {
+                "url": "https://pydantic.dev/articles/logfire-announcement",
+                "source": "pydantic.dev",
+                "headers": "## Related content; ### Explore Logfire",
+                "char_count": 1887,
+                "chunk_size": 2093,
+                "crawl_time": "_handle_message",
+                "crawl_type": "webpage",
+                "word_count": 58,
+                "chunk_index": 1,
+                "contextual_embedding": true
+              },
+              "similarity": 0.330209136009219
+            },
+            {
+              "url": "https://discord.com/terms",
+              "content": "This section details Discord's licensing, content policies, software usage, third-party services, intellectual property, and paid services, situated within the broader Terms of Service outlining user rights, responsibilities, and platform policies.\n---\nThis license is worldwide, non-exclusive (which means you can still license your content to others), royalty-free (which means there are no fees for this license), transferable, and perpetual.\nWe reserve the right to block, remove, and/or permanently delete your content if it is in breach of these terms, our [Community Guidelines](https://discord.com/guidelines), our [other policies](https://support.discord.com/hc/articles/4420312247575), or any applicable law or regulation, or if it creates risk for Discord or negatively impacts the experience or interests of other Discord users to continue to make it available.\nWe [welcome feedback](https://support.discord.com/hc/en-us/requests/new?ticket_form_id=360000029212) on our services. By sending us feedback, you grant us a non-exclusive, perpetual, irrevocable, transferable license to use the feedback and ideas generated from the feedback without any restrictions, attribution, or compensation to you.\n#### Discord\u2019s content\nOur services include some content that belongs to us, such as the design of our apps and websites, our art and images, and content written by us. You may use our software as outlined in these terms. You may only use our trademarks (or other brand indicia) and copyrights as permitted in our [Brand Guidelines](https://discord.com/branding) or with our prior written permission. We retain all intellectual property rights in our content. \n#### Other content\nOther people\u2019s content. Our services might also provide you with access to other people\u2019s content. You may not use this content without that person\u2019s consent, or as allowed by law. Other people\u2019s content is theirs and doesn\u2019t necessarily reflect Discord\u2019s own views. Discord doesn\u2019t endorse or verify the accuracy or reliability of content shared by Discord users. We work hard to try to make Discord a safe, positive, and inclusive place, but cannot always prevent you from encountering content that you may find objectionable or offensive. You agree we will not be liable for any harm caused by that content. You may [report content](https://discord.com/safety/360044103651-reporting-abusive-behavior-to-discord) that you think violates any of our policies. We have the right, but not the obligation, to review such reports and block or remove content at our discretion.\nThird party features and content. Our services may also allow you to access third-party websites, features, apps, or other content. We provide you access only as a convenience to you, and are not responsible for the content or services available from these websites or resources.\n## Software in Discord\u2019s services\nLicense to our software. Some of our services allow you to download client software. So long as you comply with these terms, we grant you a worldwide, non-exclusive, personal, and non-assignable license to download, install, and run that software, solely to access our services.\nYou may not copy, modify, create derivative works based upon, distribute, sell, lease, or sublicense any of our software or services. You also may not reverse engineer or decompile our software or services, attempt to do so, or assist anyone in doing so, unless you have our written consent or applicable law permits it.\nAlthough we are granting you this license, we retain any intellectual property rights we have in our software and services.\nOpen source. Some of Discord\u2019s services [include software](https://discord.com/acknowledgements) subject to separate [open source license terms](https://discord.com/licenses), and your use of those services are subject to your compliance with those license terms, when applicable. We encourage you to review them, as some licenses may explicitly override these terms.\nThird-Party Services. Discord may allow you to access apps, bots, or other products, features, or services developed by third parties (\u201cthird-party services\u201d). It\u2019s your choice whether to use these third-party services and whether to participate in Discord servers that incorporate them. You should review any terms and policies provided by the third parties before doing so as they govern your use of their services. While these third parties do need to follow all policies that apply to them (which may include these Terms, our [Community Guidelines](https://discord.com/guidelines), [Developer Terms of Service](https://discord.com/developers/docs/legal), and [Developer Policy](https://discord.com/developers/docs/policy)), Discord is not responsible for any third-party services.\n## Copyright\nWe respect the intellectual property of others and expect our users to do the same. See our [Copyright & IP Policy](https://support.discord.com/hc/articles/4410339349655) for information on how to file a copyright complaint.\n## Discord\u2019s paid services\nWe won\u2019t charge you a fee to use the basic functionality of our services, but you may be able to pay for additional features and products. Discord\u2019s [Paid Services Terms](https://discord.com/terms/paid-services-terms) also apply t",
+              "metadata": {
+                "url": "https://discord.com/terms",
+                "source": "discord.com",
+                "headers": "## Contacting each other",
+                "char_count": 3472,
+                "chunk_size": 5251,
+                "crawl_time": "_handle_message",
+                "crawl_type": "webpage",
+                "word_count": 543,
+                "chunk_index": 12,
+                "contextual_embedding": true
+              },
+              "similarity": 0.329635471766805
+            },
+            {
+              "url": "https://discord.com/privacy",
+              "content": "This section describes Discord's purpose as a platform for social interaction, the types of services offered, content sharing practices, and details on the data collected from users, including account information, content, and activities, as well as how this data is used and protected.\n---\n## Discord is the best place to talk, hang out and have fun with friends online\nWe created Discord to be the best place to talk, hang out and have fun with friends online. Whether you\u2019re part of a club, gaming group, or just a handful of friends that want to spend time together, Discord makes it easy to connect with friends.\nOur \u201cservices\u201d has the same meaning as defined in the [Terms of Service](https://discord.com/terms). They include the Discord app, which can be accessed on mobile, web, desktop, console, or even a connected home appliance\u2014any device with a web browser and internet connection. We also have a website, blog, and support center, and we may collect your information through other means like surveys, emails, and social media. If we build another product, our services include that too.\nAs explained in our [Terms of Service](https://discord.com/terms), we allow users to add content to the services in a number of different ways, including via direct messages and in smaller and larger spaces. If you share content within larger spaces, that content may be accessed by many people, including people you do not know. For example, some servers are available in the Server Discovery section of the app and do not require an invite link to join. Other server owners may publish their server invite link on public websites. Anyone can access these servers, and you should be aware that server owners or admins set these permissions, and like the size of a server, the permissions may change over time.\nWe may also use content posted in larger spaces to help us develop, improve and power our services, including features that help you catch up on conversations and safety features that identify harmful content on the services and support the enforcement of our [Terms of Service](https://discord.com/terms) and [Community Guidelines](https://discord.com/guidelines). These things are important to us, and we believe they will make Discord even better for our users. We will always try to let you know the type of space you are in (although we don\u2019t control where invite links are shared or the permissions for that server). You can limit the extent to which your content is used for these purposes as described in the \u201cHow to control your privacy\u201d section below. You can learn more about our approach to safety and content moderation, including how we use your information for these purposes, in our [Safety Center](https://discord.com/safety/our-approach-to-content-moderation). You should take all of this into account when you are using our services, and choose the spaces, features, and settings that are most appropriate for your content.\nWe make money from paid subscriptions and the sale of digital (and sometimes physical) goods, not from selling your personal information to third parties.\n## The information we collect\nWe collect certain information when you use Discord. This includes information you provide to us, information we collect automatically, and information we receive from other sources.\n#### Information you provide to us\n  * **Account information**. When you create a Discord account, you can come up with a username and password, and provide a way of contacting you (such as an email address and/or phone number). You\u2019ll also need to provide your birthday. In some cases, we may require additional information to verify your age. You may be required to verify your account or provide additional information (like a verified phone number) to your account. You may also have the option to add your name or choose a display name.\n  * **Content you create**. This includes any content that you upload to the service. For example, you may write messages or posts (including drafts), send voice messages, create custom emojis, or post other content that you create with features that we develop. You may also upload and share files through the services. This also includes your profile information and the information you provide when you create servers. We generally do not store the contents of video or voice calls or channels. If we were to change that in the future (for example, to facilitate content moderation), we would disclose that to you in advance. We also don\u2019t store streaming content when you share your screen, but we do retain the thumbnail cover image for the stream for a short period of time. We may build features that help users engage with voice and video content, like create or send short recordings.\n  * **Payment information**. If you buy any paid services through Discord, you may need to submit a valid payment method and associated billing information, including your full name and billing address. Our payment processors, like Stripe and PayPal, receive and process your payment information. Depending on the processor, we may also receive and store certain billing information, including the last four digits of the credit card number associated with the transaction. If you sell something through Discord, you may be requir",
+              "metadata": {
+                "url": "https://discord.com/privacy",
+                "source": "discord.com",
+                "headers": "#### Information we collect automatically",
+                "char_count": 3186,
+                "chunk_size": 5289,
+                "crawl_time": "_handle_message",
+                "crawl_type": "webpage",
+                "word_count": 491,
+                "chunk_index": 4,
+                "contextual_embedding": true
+              },
+              "similarity": 0.323131363205233
+            }
+          ],
+          "count": 5
+        }
+      },
+      "timestamp": "2025-06-14T19:40:10.472329"
+    },
+    {
+      "name": "Playground Endpoint",
+      "status": "PASSED",
+      "duration": 0.15191030502319336,
+      "result": {
+        "success": true,
+        "status_code": 200,
+        "content_length": 39100
+      },
+      "timestamp": "2025-06-14T19:40:10.624277"
+    },
+    {
+      "name": "404 Handling",
+      "status": "PASSED",
+      "duration": 0.11593008041381836,
+      "result": {
+        "success": true,
+        "status_code": 404
+      },
+      "timestamp": "2025-06-14T19:40:10.740243"
+    },
+    {
+      "name": "Invalid JSON Handling",
+      "status": "PASSED",
+      "duration": 0.12022709846496582,
+      "result": {
+        "success": true,
+        "status_code": 422
+      },
+      "timestamp": "2025-06-14T19:40:10.860504"
+    },
+    {
+      "name": "CORS Headers",
+      "status": "FAILED",
+      "duration": 0.1080319881439209,
+      "result": {
+        "success": false,
+        "error": "Missing CORS headers: ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers']"
+      },
+      "timestamp": "2025-06-14T19:40:10.968570"
+    }
+  ]
+}
