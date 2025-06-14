@@ -1631,9 +1631,10 @@ async def smart_crawl_url(
         for i, page_result in enumerate(all_results, 1):
             if page_result.get('markdown'):
                 page_url = page_result['url']
-                log_store.add_log("INFO", f"📄 Processing page {i}/{len(all_results)}: {page_url}", "/crawl/smart")
+                # Only log every 5th page to reduce overhead
+                if i % 5 == 1 or i == len(all_results):
+                    log_store.add_log("INFO", f"📄 Processing pages {i}-{min(i+4, len(all_results))}/{len(all_results)}", "/crawl/smart")
                 chunks = smart_chunk_markdown(page_result['markdown'], chunk_size)
-                log_store.add_log("INFO", f"🔪 Created {len(chunks)} chunks for {page_url}", "/crawl/smart")
                 
                 # Prepare data for storage
                 urls = [page_url] * len(chunks)
@@ -1657,16 +1658,20 @@ async def smart_crawl_url(
                 url_to_full_document = {page_url: page_result['markdown']}
                 
                 # Store in database
-                log_store.add_log("INFO", f"💾 Storing {len(chunks)} chunks for {page_url} in database...", "/crawl/smart")
-                add_documents_to_supabase(
-                    client=supabase_client,
-                    urls=urls,
-                    chunk_numbers=chunk_numbers,
-                    contents=chunks,
-                    metadatas=metadatas,
-                    url_to_full_document=url_to_full_document
-                )
-                log_store.add_log("INFO", f"✅ Successfully stored {len(chunks)} chunks for {page_url}", "/crawl/smart")
+                try:
+                    add_documents_to_supabase(
+                        client=supabase_client,
+                        urls=urls,
+                        chunk_numbers=chunk_numbers,
+                        contents=chunks,
+                        metadatas=metadatas,
+                        url_to_full_document=url_to_full_document
+                    )
+                    # Only log storage for every 5th page to reduce overhead
+                    if i % 5 == 1 or i == len(all_results):
+                        log_store.add_log("INFO", f"💾 Stored chunks for pages {max(1, i-4)}-{i}", "/crawl/smart")
+                except Exception as storage_error:
+                    log_store.add_log("ERROR", f"❌ Storage failed for {page_url}: {str(storage_error)}", "/crawl/smart")
                 
                 total_chunks += len(chunks)
         
@@ -1682,6 +1687,7 @@ async def smart_crawl_url(
         )
         
     except Exception as e:
+        log_store.add_log("ERROR", f"❌ Smart crawl failed for {request.url}: {str(e)}", "/crawl/smart")
         return SmartCrawlResponse(
             success=False,
             error=str(e)
@@ -2029,6 +2035,35 @@ async def debug_logs(api_key: str = Depends(get_api_key)):
             "log_store_maxlen": log_store.logs.maxlen
         }
     except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/test/simple-crawl")
+async def test_simple_crawl(api_key: str = Depends(get_api_key)):
+    """Simple test crawl with minimal logging to debug issues."""
+    try:
+        if not app_context:
+            raise HTTPException(status_code=500, detail="Server not properly initialized")
+        
+        log_store.add_log("INFO", "🧪 Test crawl started", "/test/simple-crawl")
+        
+        # Just test basic crawler functionality
+        crawler = app_context.crawler
+        result = await crawler.arun(url="https://httpbin.org/html")
+        
+        log_store.add_log("INFO", f"✅ Test crawl result: success={result.success}", "/test/simple-crawl")
+        
+        return {
+            "success": True,
+            "test_url": "https://httpbin.org/html",
+            "crawl_success": result.success,
+            "content_length": len(result.markdown) if result.markdown else 0
+        }
+        
+    except Exception as e:
+        log_store.add_log("ERROR", f"❌ Test crawl failed: {str(e)}", "/test/simple-crawl")
         return {
             "success": False,
             "error": str(e)
