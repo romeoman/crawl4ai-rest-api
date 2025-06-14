@@ -1237,6 +1237,9 @@ async def playground(request: Request):
                     realtimeLogsInterval = null;
                 }
                 
+                // Reset timestamp so next start works properly
+                lastLogTimestamp = null;
+                
                 const statusEl = document.getElementById('logs-status');
                 statusEl.className = 'status-indicator status-idle';
                 statusEl.innerHTML = '⚪ Stopped';
@@ -1570,6 +1573,8 @@ async def smart_crawl_url(
         user_agent = request.user_agent
         verbose = request.verbose
         
+        log_store.add_log("INFO", f"🚀 Smart crawl started for {url} (depth: {max_depth}, concurrent: {max_concurrent})", "/crawl/smart")
+        
         crawler = app_context.crawler
         supabase_client = app_context.supabase_client
         
@@ -1579,17 +1584,24 @@ async def smart_crawl_url(
         
         if is_sitemap(url):
             crawl_type = "sitemap"
+            log_store.add_log("INFO", f"📄 Detected sitemap URL, parsing sitemap...", "/crawl/smart")
             sitemap_urls = parse_sitemap(url)
             if sitemap_urls:
+                log_store.add_log("INFO", f"📋 Found {len(sitemap_urls)} URLs in sitemap", "/crawl/smart")
                 # Filter out fresh URLs unless force_recrawl is True
                 urls_to_crawl = sitemap_urls[:50]  # Limit to 50 URLs
+                log_store.add_log("INFO", f"🔢 Limited to {len(urls_to_crawl)} URLs for processing", "/crawl/smart")
                 if not force_recrawl:
+                    log_store.add_log("INFO", f"🔍 Checking URL freshness...", "/crawl/smart")
                     stale_urls = get_stale_urls(supabase_client, urls_to_crawl)
                     skipped_fresh_count = len(urls_to_crawl) - len(stale_urls)
                     urls_to_crawl = stale_urls
+                    log_store.add_log("INFO", f"⏭️ Skipped {skipped_fresh_count} fresh URLs, crawling {len(urls_to_crawl)} stale URLs", "/crawl/smart")
                 
                 if urls_to_crawl:
+                    log_store.add_log("INFO", f"🕷️ Starting batch crawl of {len(urls_to_crawl)} URLs...", "/crawl/smart")
                     all_results = await crawl_batch(crawler, urls_to_crawl, max_concurrent)
+                    log_store.add_log("INFO", f"✅ Batch crawl completed, got {len(all_results)} results", "/crawl/smart")
         elif is_txt(url):
             crawl_type = "txt_file"
             # Check freshness for single URL unless force_recrawl
@@ -1614,18 +1626,21 @@ async def smart_crawl_url(
                 all_results = await crawl_recursive_internal_links(crawler, start_urls, max_depth, max_concurrent)
         
         # Process and store all results
+        log_store.add_log("INFO", f"📊 Processing {len(all_results)} crawled pages for chunking and storage...", "/crawl/smart")
         total_chunks = 0
-        for page_result in all_results:
+        for i, page_result in enumerate(all_results, 1):
             if page_result.get('markdown'):
+                page_url = page_result['url']
+                log_store.add_log("INFO", f"📄 Processing page {i}/{len(all_results)}: {page_url}", "/crawl/smart")
                 chunks = smart_chunk_markdown(page_result['markdown'], chunk_size)
+                log_store.add_log("INFO", f"🔪 Created {len(chunks)} chunks for {page_url}", "/crawl/smart")
                 
                 # Prepare data for storage
-                page_url = page_result['url']
                 urls = [page_url] * len(chunks)
                 chunk_numbers = list(range(1, len(chunks) + 1))
                 metadatas = []
                 
-                for i, chunk in enumerate(chunks):
+                for chunk_idx, chunk in enumerate(chunks):
                     section_info = extract_section_info(chunk)
                     metadata = {
                         "source": urlparse(page_url).netloc,
@@ -1633,7 +1648,7 @@ async def smart_crawl_url(
                         "headers": section_info["headers"],
                         "word_count": section_info["word_count"],
                         "char_count": section_info["char_count"],
-                        "chunk_number": i + 1,
+                        "chunk_number": chunk_idx + 1,
                         "total_chunks": len(chunks)
                     }
                     metadatas.append(metadata)
@@ -1642,6 +1657,7 @@ async def smart_crawl_url(
                 url_to_full_document = {page_url: page_result['markdown']}
                 
                 # Store in database
+                log_store.add_log("INFO", f"💾 Storing {len(chunks)} chunks for {page_url} in database...", "/crawl/smart")
                 add_documents_to_supabase(
                     client=supabase_client,
                     urls=urls,
@@ -1650,8 +1666,11 @@ async def smart_crawl_url(
                     metadatas=metadatas,
                     url_to_full_document=url_to_full_document
                 )
+                log_store.add_log("INFO", f"✅ Successfully stored {len(chunks)} chunks for {page_url}", "/crawl/smart")
                 
                 total_chunks += len(chunks)
+        
+        log_store.add_log("INFO", f"🎉 Smart crawl completed! Total: {total_chunks} chunks from {len(all_results)} pages", "/crawl/smart")
         
         return SmartCrawlResponse(
             success=True,
@@ -1680,6 +1699,7 @@ async def get_available_sources(api_key: str = Depends(get_api_key)) -> Availabl
         if not app_context:
             raise HTTPException(status_code=500, detail="Server not properly initialized")
         
+        log_store.add_log("INFO", f"📚 Sources endpoint accessed", "/sources")
         supabase_client = app_context.supabase_client
         
         # Use a direct query with the Supabase client
