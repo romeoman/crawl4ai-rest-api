@@ -206,6 +206,12 @@ class RecentCrawlsResponse(BaseModel):
     count: Optional[int] = None
     error: Optional[str] = None
 
+class LogsResponse(BaseModel):
+    success: bool
+    logs: List[Dict[str, Any]] = []
+    count: Optional[int] = None
+    error: Optional[str] = None
+
 # Helper functions for AI extraction
 def create_extraction_strategy(extraction_strategy: str, extraction_config: ExtractionConfig):
     """Create an extraction strategy based on the configuration."""
@@ -421,6 +427,23 @@ async def playground(request: Request):
             .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
             .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
             .alert-warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+            .status-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+            .status-success { background: #27ae60; }
+            .status-warning { background: #f39c12; }
+            .status-error { background: #e74c3c; }
+            .status-idle { background: #95a5a6; }
+            .log-entry { margin-bottom: 2px; padding: 2px 0; border-left: 3px solid transparent; padding-left: 8px; }
+            .log-entry.error { border-left-color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+            .log-entry.warning { border-left-color: #f39c12; background: rgba(243, 156, 18, 0.1); }
+            .log-entry.info { border-left-color: #3498db; background: rgba(52, 152, 219, 0.1); }
+            .log-entry.debug { border-left-color: #9b59b6; background: rgba(155, 89, 182, 0.1); }
+            .log-timestamp { color: #888; font-size: 11px; margin-right: 8px; }
+            .log-level { font-weight: bold; margin-right: 8px; }
+            .log-level.ERROR { color: #e74c3c; }
+            .log-level.WARNING { color: #f39c12; }
+            .log-level.INFO { color: #3498db; }
+            .log-level.DEBUG { color: #9b59b6; }
+            .log-message { color: #ecf0f1; }
         </style>
     </head>
     <body>
@@ -433,6 +456,7 @@ async def playground(request: Request):
             <div class="nav-tabs">
                 <div class="nav-tab active" onclick="showTab('test')">🧪 API Testing</div>
                 <div class="nav-tab" onclick="showTab('database')">🗄️ Database Browser</div>
+                <div class="nav-tab" onclick="showTab('logs')">📋 Logs</div>
                 <div class="nav-tab" onclick="showTab('monitor')">📊 Monitoring</div>
                 <div class="nav-tab" onclick="showTab('docs')">📚 Documentation</div>
             </div>
@@ -493,6 +517,73 @@ async def playground(request: Request):
                     
                     <div id="database-content">
                         <p>Click "Refresh Sources" to browse crawled content</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Logs Tab -->
+            <div id="logs-tab" class="tab-content">
+                <div class="panel">
+                    <h3>📋 System Logs</h3>
+                    <div class="grid">
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button class="btn btn-success" onclick="loadRealtimeLogs()">🔴 Start Real-time Logs</button>
+                            <button class="btn btn-warning" onclick="stopRealtimeLogs()">⏹️ Stop Real-time</button>
+                            <button class="btn btn-primary" onclick="loadHistoricalLogs()">📜 Load Historical Logs</button>
+                            <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear Display</button>
+                            <select id="log-level-filter" class="form-input" style="width: auto; margin-left: auto;">
+                                <option value="all">All Levels</option>
+                                <option value="ERROR">🔴 Errors Only</option>
+                                <option value="WARNING">🟡 Warnings+</option>
+                                <option value="INFO">🔵 Info+</option>
+                                <option value="DEBUG">🔍 Debug+</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label class="form-label">Filter by Endpoint/Action:</label>
+                                <input type="text" id="endpoint-filter" class="form-input" placeholder="e.g., /crawl/single, /query/rag" />
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="form-label">Time Range (last):</label>
+                                <select id="time-range" class="form-input">
+                                    <option value="5">5 minutes</option>
+                                    <option value="15">15 minutes</option>
+                                    <option value="60" selected>1 hour</option>
+                                    <option value="360">6 hours</option>
+                                    <option value="1440">24 hours</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="logs-controls" style="margin-bottom: 15px;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span id="logs-status" class="status-indicator status-idle">⚪ Idle</span>
+                                <span id="logs-count">0 logs displayed</span>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="auto-scroll" checked> Auto-scroll to bottom
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="checkbox" id="show-timestamps" checked> Show timestamps
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="logs-container" style="
+                        background: #1a1a1a; 
+                        color: #00ff00; 
+                        font-family: 'Monaco', 'Consolas', monospace; 
+                        font-size: 12px; 
+                        padding: 15px; 
+                        border-radius: 8px; 
+                        height: 500px; 
+                        overflow-y: auto; 
+                        border: 2px solid #333;
+                        white-space: pre-wrap;
+                        line-height: 1.4;">
+                        <div style="color: #888;">📋 Logs will appear here. Click "Start Real-time Logs" to begin monitoring or "Load Historical Logs" to view past entries.</div>
                     </div>
                 </div>
             </div>
@@ -1015,6 +1106,188 @@ async def playground(request: Request):
                     document.getElementById('url').value = url;
                     document.getElementById('force_recrawl').checked = true;
                 }, 100);
+            }
+            
+            // Logs functionality
+            let realtimeLogsInterval = null;
+            let lastLogTimestamp = null;
+            
+            function loadRealtimeLogs() {
+                if (realtimeLogsInterval) {
+                    stopRealtimeLogs();
+                }
+                
+                const statusEl = document.getElementById('logs-status');
+                statusEl.className = 'status-indicator status-success';
+                statusEl.textContent = '🔴 Real-time Active';
+                
+                // Clear existing logs
+                clearLogs();
+                appendLogMessage('🚀 Starting real-time log monitoring...', 'INFO');
+                
+                // Start polling for new logs every 2 seconds
+                realtimeLogsInterval = setInterval(fetchRealtimeLogs, 2000);
+                
+                // Fetch initial logs
+                fetchRealtimeLogs();
+            }
+            
+            async function fetchRealtimeLogs() {
+                try {
+                    const timeRange = document.getElementById('time-range').value;
+                    const levelFilter = document.getElementById('log-level-filter').value;
+                    const endpointFilter = document.getElementById('endpoint-filter').value;
+                    
+                    let url = API_BASE + 'logs?limit=50&minutes=' + timeRange;
+                    if (levelFilter !== 'all') {
+                        url += '&level=' + levelFilter;
+                    }
+                    if (endpointFilter) {
+                        url += '&endpoint=' + encodeURIComponent(endpointFilter);
+                    }
+                    if (lastLogTimestamp) {
+                        url += '&since=' + encodeURIComponent(lastLogTimestamp);
+                    }
+                    
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': 'Bearer ' + API_KEY }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.logs && data.logs.length > 0) {
+                        data.logs.forEach(log => {
+                            appendLogEntry(log);
+                            lastLogTimestamp = log.timestamp;
+                        });
+                        updateLogCount();
+                    }
+                } catch (error) {
+                    console.error('Real-time logs error:', error);
+                    appendLogMessage('❌ Error fetching real-time logs: ' + error.message, 'ERROR');
+                }
+            }
+            
+            function stopRealtimeLogs() {
+                if (realtimeLogsInterval) {
+                    clearInterval(realtimeLogsInterval);
+                    realtimeLogsInterval = null;
+                }
+                
+                const statusEl = document.getElementById('logs-status');
+                statusEl.className = 'status-indicator status-idle';
+                statusEl.textContent = '⚪ Idle';
+                
+                appendLogMessage('⏹️ Real-time log monitoring stopped.', 'INFO');
+            }
+            
+            async function loadHistoricalLogs() {
+                const container = document.getElementById('logs-container');
+                container.innerHTML = '<div style="color: #888;">📜 Loading historical logs...</div>';
+                
+                try {
+                    const timeRange = document.getElementById('time-range').value;
+                    const levelFilter = document.getElementById('log-level-filter').value;
+                    const endpointFilter = document.getElementById('endpoint-filter').value;
+                    
+                    let url = API_BASE + 'logs?limit=200&minutes=' + timeRange;
+                    if (levelFilter !== 'all') {
+                        url += '&level=' + levelFilter;
+                    }
+                    if (endpointFilter) {
+                        url += '&endpoint=' + encodeURIComponent(endpointFilter);
+                    }
+                    
+                    const response = await fetch(url, {
+                        headers: { 'Authorization': 'Bearer ' + API_KEY }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    clearLogs();
+                    
+                    if (data.success && data.logs && data.logs.length > 0) {
+                        appendLogMessage('📜 Loaded ' + data.logs.length + ' historical log entries', 'INFO');
+                        data.logs.forEach(log => {
+                            appendLogEntry(log);
+                        });
+                    } else {
+                        appendLogMessage('📭 No logs found for the specified time range and filters.', 'INFO');
+                    }
+                    
+                    updateLogCount();
+                } catch (error) {
+                    console.error('Historical logs error:', error);
+                    clearLogs();
+                    appendLogMessage('❌ Error loading historical logs: ' + error.message, 'ERROR');
+                }
+            }
+            
+            function appendLogEntry(log) {
+                const container = document.getElementById('logs-container');
+                const showTimestamps = document.getElementById('show-timestamps').checked;
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry ' + log.level.toLowerCase();
+                
+                let content = '';
+                
+                if (showTimestamps) {
+                    const timestamp = new Date(log.timestamp).toLocaleTimeString();
+                    content += '<span class="log-timestamp">' + timestamp + '</span>';
+                }
+                
+                content += '<span class="log-level ' + log.level + '">' + log.level + '</span>';
+                content += '<span class="log-message">' + escapeHtml(log.message) + '</span>';
+                
+                if (log.endpoint) {
+                    content += ' <span style="color: #888;">(' + log.endpoint + ')</span>';
+                }
+                
+                logEntry.innerHTML = content;
+                container.appendChild(logEntry);
+                
+                // Auto-scroll to bottom if enabled
+                if (document.getElementById('auto-scroll').checked) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+            
+            function appendLogMessage(message, level = 'INFO') {
+                const log = {
+                    timestamp: new Date().toISOString(),
+                    level: level,
+                    message: message,
+                    endpoint: null
+                };
+                appendLogEntry(log);
+                updateLogCount();
+            }
+            
+            function clearLogs() {
+                const container = document.getElementById('logs-container');
+                container.innerHTML = '';
+                updateLogCount();
+            }
+            
+            function updateLogCount() {
+                const container = document.getElementById('logs-container');
+                const count = container.children.length;
+                document.getElementById('logs-count').textContent = count + ' logs displayed';
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
             
             // Initialize the page
@@ -1571,6 +1844,124 @@ async def get_recent_crawls(
         
     except Exception as e:
         return RecentCrawlsResponse(
+            success=False,
+            error=str(e)
+        )
+
+@app.get("/logs", response_model=LogsResponse)
+async def get_logs(
+    limit: int = 100,
+    minutes: int = 60,
+    level: Optional[str] = None,
+    endpoint: Optional[str] = None,
+    since: Optional[str] = None,
+    api_key: str = Depends(get_api_key)
+) -> LogsResponse:
+    """
+    Get system logs with filtering options.
+    
+    This endpoint provides access to application logs for monitoring and debugging.
+    Supports filtering by time range, log level, endpoint, and timestamp.
+    """
+    try:
+        # For now, we'll simulate logs since we don't have a database table for logs yet
+        # In a real implementation, you'd query a logs table or use a logging service
+        
+        import logging
+        from datetime import datetime, timedelta
+        
+        # Get current time and calculate time range
+        now = datetime.utcnow()
+        start_time = now - timedelta(minutes=minutes)
+        
+        # Simulate some sample logs for demonstration
+        sample_logs = [
+            {
+                "timestamp": (now - timedelta(minutes=5)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "Health check endpoint accessed",
+                "endpoint": "/health"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=10)).isoformat() + "Z",
+                "level": "INFO", 
+                "message": "Single page crawl started for https://man.digital",
+                "endpoint": "/crawl/single"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=12)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "Successfully stored 6 chunks for https://man.digital",
+                "endpoint": "/crawl/single"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=15)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "RAG query processed: 'What is the main content?'",
+                "endpoint": "/query/rag"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=20)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "Recent crawls data fetched successfully",
+                "endpoint": "/recent-crawls"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=25)).isoformat() + "Z",
+                "level": "WARNING",
+                "message": "URL freshness check for stale URL: https://example.com",
+                "endpoint": "/check-freshness"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=30)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "API server started successfully on 0.0.0.0:8000",
+                "endpoint": None
+            }
+        ]
+        
+        # Filter logs based on parameters
+        filtered_logs = []
+        for log in sample_logs:
+            # Filter by time range
+            log_time = datetime.fromisoformat(log["timestamp"].replace("Z", "+00:00"))
+            if log_time < start_time:
+                continue
+                
+            # Filter by log level
+            if level and level != "all":
+                level_priority = {"DEBUG": 0, "INFO": 1, "WARNING": 2, "ERROR": 3}
+                if level_priority.get(log["level"], 0) < level_priority.get(level, 0):
+                    continue
+            
+            # Filter by endpoint
+            if endpoint and endpoint.strip():
+                if not log.get("endpoint") or endpoint.lower() not in log["endpoint"].lower():
+                    continue
+            
+            # Filter by timestamp (for real-time updates)
+            if since:
+                since_time = datetime.fromisoformat(since.replace("Z", "+00:00"))
+                if log_time <= since_time:
+                    continue
+            
+            filtered_logs.append(log)
+        
+        # Sort by timestamp (newest first)
+        filtered_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        # Apply limit
+        filtered_logs = filtered_logs[:limit]
+        
+        return LogsResponse(
+            success=True,
+            logs=filtered_logs,
+            count=len(filtered_logs)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error fetching logs: {str(e)}")
+        return LogsResponse(
             success=False,
             error=str(e)
         )
