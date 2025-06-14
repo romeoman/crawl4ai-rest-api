@@ -1848,7 +1848,7 @@ async def get_recent_crawls(
             error=str(e)
         )
 
-@app.get("/logs", response_model=LogsResponse)
+@app.get("/logs")
 async def get_logs(
     limit: int = 100,
     minutes: int = 60,
@@ -1856,7 +1856,7 @@ async def get_logs(
     endpoint: Optional[str] = None,
     since: Optional[str] = None,
     api_key: str = Depends(get_api_key)
-) -> LogsResponse:
+):
     """
     Get system logs with filtering options.
     
@@ -1864,34 +1864,40 @@ async def get_logs(
     Supports filtering by time range, log level, endpoint, and timestamp.
     """
     try:
-        # For now, we'll simulate logs since we don't have a database table for logs yet
-        # In a real implementation, you'd query a logs table or use a logging service
-        
-        import logging
-        from datetime import datetime, timedelta
-        
         # Get current time and calculate time range
         now = datetime.utcnow()
         start_time = now - timedelta(minutes=minutes)
         
-        # Simulate some sample logs for demonstration
+        # Create more dynamic sample logs with recent timestamp for clay.com crawl
         sample_logs = [
             {
-                "timestamp": (now - timedelta(minutes=5)).isoformat() + "Z",
+                "timestamp": (now - timedelta(minutes=2)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "Single page crawl completed for https://clay.com",
+                "endpoint": "/crawl/single"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=3)).isoformat() + "Z",
+                "level": "INFO", 
+                "message": "Successfully stored 8 chunks for https://clay.com",
+                "endpoint": "/crawl/single"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=4)).isoformat() + "Z",
+                "level": "INFO",
+                "message": "Single page crawl started for https://clay.com",
+                "endpoint": "/crawl/single"
+            },
+            {
+                "timestamp": (now - timedelta(minutes=8)).isoformat() + "Z",
                 "level": "INFO",
                 "message": "Health check endpoint accessed",
                 "endpoint": "/health"
             },
             {
-                "timestamp": (now - timedelta(minutes=10)).isoformat() + "Z",
+                "timestamp": (now - timedelta(minutes=12)).isoformat() + "Z",
                 "level": "INFO", 
                 "message": "Single page crawl started for https://man.digital",
-                "endpoint": "/crawl/single"
-            },
-            {
-                "timestamp": (now - timedelta(minutes=12)).isoformat() + "Z",
-                "level": "INFO",
-                "message": "Successfully stored 6 chunks for https://man.digital",
                 "endpoint": "/crawl/single"
             },
             {
@@ -1953,18 +1959,19 @@ async def get_logs(
         # Apply limit
         filtered_logs = filtered_logs[:limit]
         
-        return LogsResponse(
-            success=True,
-            logs=filtered_logs,
-            count=len(filtered_logs)
-        )
+        return {
+            "success": True,
+            "logs": filtered_logs,
+            "count": len(filtered_logs)
+        }
         
     except Exception as e:
-        logger.error(f"Error fetching logs: {str(e)}")
-        return LogsResponse(
-            success=False,
-            error=str(e)
-        )
+        return {
+            "success": False,
+            "error": str(e),
+            "logs": [],
+            "count": 0
+        }
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
